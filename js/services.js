@@ -27,7 +27,7 @@
   // Profils Entra simulés. Le vrai rôle viendra des groupes du jeton.
   const PROFILS = [
     { id: 'p1', nom: 'Vincent St-Onge', courriel: 'vincent.st-onge@etsmtl.ca', unite: 'Service des technologies de l’information', role: 'personnel' },
-    { id: 'p2', nom: 'Julie Tremblay', courriel: 'julie.tremblay@etsmtl.ca', unite: 'Décanat des études', role: 'soutien' },
+    { id: 'p2', nom: 'Yan Sasseville', courriel: 'yan.sasseville@etsmtl.ca', unite: 'Décanat des études', role: 'soutien' },
   ];
   const ROLES = { personnel: 'Membre du personnel', soutien: 'Soutien administratif' };
 
@@ -187,7 +187,7 @@
       async profilsDemo() { return copie(PROFILS); },
       async changerProfil(id) { etat.profil = id; sauver(); },
       async annuaire(recherche) {
-        const gens = ['Vincent St-Onge', 'Julie Tremblay', 'Marc-André Roy', 'Sophie Lavoie', 'Nadia Haddad', 'Philippe Côté'];
+        const gens = ['Vincent St-Onge', 'Yan Sasseville', 'Marc-André Roy', 'Sophie Lavoie', 'Nadia Haddad', 'Philippe Côté'];
         const r = (recherche || '').toLowerCase();
         return gens.filter((g) => g.toLowerCase().includes(r));
       },
