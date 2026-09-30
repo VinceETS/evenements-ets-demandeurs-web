@@ -242,6 +242,7 @@ dialog h2 { margin-bottom: .4em; }
   .marque img { width: 52px; height: 52px; }
   h1 { font-size: 1.5rem; }
   .carte { padding: 16px; }
+  .stats { grid-template-columns: 1fr 1fr; }
 }
 @media print {
   .barre-outils, .nav-principale, .pied, .actions, .no-print { display: none !important; }
