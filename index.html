@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Événements ÉTS — Espace demandeur</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="css/ets.css">
+</head>
+<body>
+  <a class="evitement" href="#contenu">Aller au contenu principal</a>
+
+  <!-- Barre grise de l'intranet : profil connecté par Entra (simulé en phase 1) -->
+  <div class="barre-outils">
+    <div class="conteneur barre-outils__interieur">
+      <span class="barre-outils__lieu">Intranet ÉTS</span>
+      <div class="profil" id="profil"></div>
+    </div>
+  </div>
+
+  <header class="entete">
+    <div class="conteneur entete__interieur">
+      <a href="#/" class="marque" aria-label="Événements ÉTS, accueil">
+        <img src="assets/logo-ets.png" alt="" width="64" height="64">
+        <span class="marque__texte">École de<br>technologie<br>supérieure</span>
+      </a>
+      <div class="entete__app">
+        <span class="entete__titre">Événements</span>
+        <span class="entete__sous-titre">Espace demandeur</span>
+      </div>
+    </div>
+    <nav class="nav-principale" aria-label="Navigation principale">
+      <div class="conteneur">
+        <a href="#/" data-nav="accueil">Mes événements</a>
+        <a href="#/nouveau" data-nav="nouveau">Nouvel événement</a>
+        <a href="#/aide" data-nav="aide">Aide et FAQ</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="contenu" class="conteneur" tabindex="-1"></main>
+
+  <footer class="pied">
+    <div class="conteneur pied__interieur">
+      <span>© 2026 ÉTS — Régie des événements</span>
+      <a href="mailto:regie-evenements@etsmtl.ca">regie-evenements@etsmtl.ca</a>
+      <span class="pied__demo">Prototype : données fictives, aucun lien avec M-Files ni Prélude.
+        <button type="button" class="lien" id="reinitialiser">Réinitialiser la démo</button></span>
+    </div>
+  </footer>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/services.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
