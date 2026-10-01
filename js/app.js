@@ -92,8 +92,17 @@
     clearTimeout(toast.minuterie); toast.minuterie = setTimeout(() => t.classList.remove('visible'), 3200);
   }
 
+  // En mode M-Files réel, un bandeau le rappelle sur toutes les pages.
+  function bandeauReel() {
+    const R = S.MFilesReel;
+    if (!R || !R.actif()) return '';
+    const fin = R.jetonExpire();
+    const etat = !fin ? 'aucun jeton' : fin < new Date() ? 'jeton expiré' : 'jeton valide jusqu\u2019à ' + `${fin.getHours()} h ${String(fin.getMinutes()).padStart(2, '0')}`;
+    return `<div class="avis avis--alerte no-print"><strong>Mode M-Files réel — lecture seule</strong>Les données viennent du vault (${etat}). <a href="#/mfiles">Connexion M-Files</a></div>`;
+  }
+
   function rendre(html, titre) {
-    main.innerHTML = html;
+    main.innerHTML = bandeauReel() + html;
     document.title = (titre ? titre + ' — ' : '') + 'Événements ÉTS';
     main.focus({ preventScroll: true });
     window.scrollTo(0, 0);
@@ -731,7 +740,11 @@
           <section class="carte"><h2 style="font-size:1.05rem">Historique</h2>
             <ul class="liste-simple petit">${e.historique.slice().reverse().map((x) => `<li>${h(x.texte)}<br><span class="doux">${horodatage(x.date)}</span></li>`).join('')}</ul>
           </section>
-          ${['attente', 'traitement', 'revision', 'planifie'].includes(e.statut) ? `<section class="carte no-print" style="border-style:dashed">
+          ${e.reel ? `<section class="carte"><h2 style="font-size:1.05rem">Dans M-Files</h2>
+            <p class="petit"><b>Étape du workflow</b><br>${h(e.etapeMFiles || 'inconnue')}</p>
+            <p class="petit"><b>Fiche événement</b><br>${h(e.ficheMFiles || 'pas encore liée')}</p>
+            <p class="petit doux">Numéro d\u2019objet ${h(e.id)}. Le statut affiché est déduit de l\u2019étape, provisoirement.</p></section>` : ''}
+          ${!e.reel && ['attente', 'traitement', 'revision', 'planifie'].includes(e.statut) ? `<section class="carte no-print" style="border-style:dashed">
             <h2 style="font-size:.95rem">Démo seulement</h2>
             <p class="petit doux">Joue le rôle de la Régie pour faire avancer ce dossier.</p>
             <button class="bouton bouton--neutre" id="simuler">${{ attente: 'Assigner un conseiller', traitement: 'Proposer une fiche', revision: 'Proposer une fiche révisée', planifie: 'Demander une précision' }[e.statut]}</button>
@@ -928,6 +941,66 @@
       </div>`, 'Aide');
   }
 
+
+  // --- Connexion M-Files (essais locaux) -----------------------------------
+
+  async function pageMFiles() {
+    const R = S.MFilesReel;
+    if (!R || !R.disponible) {
+      rendre(`<h1>Connexion M-Files</h1><div class="avis">Disponible seulement en essai local, avec <code>python3 serveur.py</code>.</div>`, 'Connexion M-Files');
+      return;
+    }
+    const fin = R.jetonExpire();
+    rendre(`
+      <h1>Connexion M-Files (essais)</h1>
+      <p class="doux">Brancher la page sur le vrai vault, en lecture seule, depuis ce Mac. Rien n\u2019est écrit dans M-Files.</p>
+      <section class="carte">
+        <h2>1. Prendre un jeton</h2>
+        <ol class="liste-simple">
+          <li>Ouvrez <a href="https://ets-mdocs.cloudvault.m-files.com" target="_blank" rel="noopener">M-Files Web</a> et connectez-vous.</li>
+          <li>Ouvrez la console du navigateur (Safari : Cmd + Option + C ; Chrome : Cmd + Option + J).</li>
+          <li><button class="lien" id="copier-script" type="button">Copiez le script</button>, collez-le dans la console, Entrée : le jeton est copié.</li>
+        </ol>
+        <div class="champ" style="margin-top:12px"><label for="jeton">2. Collez le jeton ici</label>
+          <textarea id="jeton" rows="3" placeholder="eyJ…" autocomplete="off" spellcheck="false"></textarea>
+          <p class="aide">Gardé dans cet onglet seulement. Il expire après une dizaine de minutes. ${fin ? 'Jeton actuel : ' + (fin < new Date() ? 'expiré' : 'valide jusqu\u2019à ' + fin.toLocaleTimeString('fr-CA')) + '.' : ''}</p></div>
+        <div class="actions"><button class="bouton" id="tester" type="button">Enregistrer et tester</button></div>
+        <div id="resultat-test"></div>
+      </section>
+      <section class="carte">
+        <h2>3. Mode de la page</h2>
+        <p>${R.actif() ? '<b>M-Files réel</b> : « Mes événements » affiche vos vraies demandes.' : '<b>Démo</b> : données fictives.'}</p>
+        <button class="bouton ${R.actif() ? 'bouton--neutre' : ''}" id="basculer" type="button">${R.actif() ? 'Revenir à la démo' : 'Passer en M-Files réel'}</button>
+      </section>
+      <section class="carte">
+        <h2>4. Relever ce qui manque</h2>
+        <p>Lit la définition de la demande d\u2019événement, les états du workflow, les listes de valeurs et trois demandes d\u2019exemple. Les résultats vont dans le dossier <code>releves/</code> du projet, pour compléter <code>BRANCHEMENT-MFILES.md</code>.</p>
+        <button class="bouton bouton--secondaire" id="relever" type="button">Lancer le relevé</button>
+        <p class="petit doux" id="progres" aria-live="polite"></p>
+      </section>`, 'Connexion M-Files');
+
+    const $ = (x) => document.getElementById(x);
+    $('copier-script').onclick = async () => {
+      const code = await (await fetch('outils/jeton-mfiles.js')).text();
+      try { await navigator.clipboard.writeText(code); toast('Script copié.'); } catch (_) { toast('Copie refusée par le navigateur.'); }
+    };
+    $('tester').onclick = async () => {
+      if ($('jeton').value.trim()) R.poserJeton($('jeton').value);
+      $('jeton').value = '';
+      try {
+        const s = await R.session();
+        $('resultat-test').innerHTML = `<div class="avis avis--succes"><strong>Connecté au vault</strong>Compte : ${h(s.AccountName || '?')} · utilisateur M-Files n\u00b0 ${h(s.UserID)}</div>`;
+      } catch (e) { $('resultat-test').innerHTML = `<div class="avis avis--alerte"><strong>Échec</strong>${h(e.message)}</div>`; }
+    };
+    $('basculer').onclick = () => { R.activer(!R.actif()); location.hash = '#/'; location.reload(); };
+    $('relever').onclick = async (ev) => {
+      ev.target.disabled = true;
+      try { await R.releve((t) => { $('progres').textContent = t; }); }
+      catch (e) { $('progres').textContent = 'Échec : ' + e.message; }
+      ev.target.disabled = false;
+    };
+  }
+
   // --- Routeur ------------------------------------------------------------
 
   async function router() {
@@ -943,6 +1016,7 @@
       else if (p[0] === 'evenement' && p[2] === 'fiche') await pageFiche(p[1]);
       else if (p[0] === 'evenement') await pageEvenement(p[1], ancre);
       else if (p[0] === 'aide') pageAide();
+      else if (p[0] === 'mfiles') await pageMFiles();
       else rendre('<h1>Page introuvable</h1><p><a href="#/">Retour à mes événements</a></p>');
     } catch (err) {
       console.error(err);
@@ -962,6 +1036,13 @@
   document.getElementById('reinitialiser').onclick = async () => {
     S.reinitialiser(); brouillon = null; await afficherProfil(); location.hash = '#/'; router(); toast('Démo réinitialisée.');
   };
+  // Une action refusée (lecture seule, jeton expiré) devient un message, pas une page figée.
+  window.addEventListener('unhandledrejection', (ev) => { toast(ev.reason && ev.reason.message ? ev.reason.message : 'Erreur inattendue.'); });
+  if (S.MFilesReel && S.MFilesReel.disponible) {
+    const lien = document.createElement('span');
+    lien.innerHTML = ' · <a href="#/mfiles">Connexion M-Files (essais)</a>';
+    document.querySelector('.pied__demo').appendChild(lien);
+  }
   window.addEventListener('hashchange', router);
   afficherProfil().then(router);
 })();
