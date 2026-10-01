@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord — 3 propositions</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="../css/ets.css">
+  <style>
+    /* Sélecteur de proposition */
+    .choix { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+    .choix button { font: inherit; font-weight: 600; padding: 10px 16px; border: 2px solid var(--bordure); background: #fff; border-radius: var(--rayon); cursor: pointer; }
+    .choix button[aria-pressed="true"] { border-color: var(--rouge); color: var(--rouge); }
+    .intention { color: var(--texte-doux); margin-bottom: 20px; }
+
+    /* Communs */
+    .ligne { display: flex; align-items: center; gap: 12px; }
+    .mini-date { flex: none; width: 52px; text-align: center; line-height: 1.1; }
+    .mini-date b { display: block; font-size: 1.35rem; color: var(--rouge); }
+    .mini-date span { font-size: .7rem; text-transform: uppercase; font-weight: 600; color: var(--texte-doux); }
+    .titre-ev { font-weight: 700; color: var(--texte); text-decoration: none; }
+    .titre-ev:hover { color: var(--rouge); }
+    .meta { font-size: .82rem; color: var(--texte-doux); }
+    .compte { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #E2E2E2; font-size: .78rem; font-weight: 700; margin-left: 6px; vertical-align: 2px; }
+    .compte--rouge { background: var(--rouge); color: #fff; }
+
+    /* A — Priorités */
+    .a-actions { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 28px; }
+    .a-action { background: #fff; border: 1px solid var(--bordure); border-top: 4px solid var(--rouge); border-radius: var(--rayon); padding: 16px; display: flex; flex-direction: column; gap: 6px; }
+    .a-action .quoi { font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--rouge); }
+    .a-action .bouton { margin-top: auto; align-self: flex-start; }
+    .a-groupe { margin-bottom: 24px; }
+    .a-groupe h2 { font-size: 1.05rem; border-bottom: 2px solid var(--texte); padding-bottom: 6px; }
+    .a-ligne { display: grid; grid-template-columns: 52px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 12px 4px; border-bottom: 1px solid var(--bordure); }
+    .a-ligne:hover { background: #fafafa; }
+    .a-calme { color: var(--texte-doux); font-size: .9rem; padding: 10px 4px; }
+
+    /* B — Parcours (colonnes) */
+    .b-colonnes { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(220px, 1fr)); overflow-x: auto; padding-bottom: 8px; }
+    .b-col { background: #E6E6E6; border-radius: var(--rayon); padding: 10px; min-height: 200px; }
+    .b-col h2 { font-size: .9rem; margin: 2px 4px 4px; }
+    .b-col .qui { font-size: .75rem; color: var(--texte-doux); margin: 0 4px 10px; }
+    .b-col--vous { background: var(--rouge-pale); }
+    .b-carte { display: block; background: #fff; border-radius: var(--rayon); padding: 12px; margin-bottom: 8px; box-shadow: var(--ombre); text-decoration: none; color: inherit; border-left: 4px solid transparent; }
+    .b-carte:hover { box-shadow: 0 2px 8px rgba(0,0,0,.15); color: inherit; }
+    .b-carte--urgent { border-left-color: var(--rouge); }
+    .b-carte .faire { font-size: .8rem; font-weight: 700; color: var(--rouge); margin-top: 6px; }
+    .b-pied { margin-top: 14px; font-size: .85rem; }
+
+    /* C — Agenda */
+    .c-grille { display: grid; gap: 24px; grid-template-columns: 300px minmax(0,1fr); align-items: start; }
+    @media (max-width: 860px) { .c-grille { grid-template-columns: 1fr; } }
+    .c-panneau { position: sticky; top: 16px; }
+    .c-panneau .carte h2 { font-size: 1rem; }
+    .c-todo { list-style: none; margin: 0; padding: 0; }
+    .c-todo li { padding: 10px 0; border-bottom: 1px solid var(--bordure); }
+    .c-todo li:last-child { border: 0; }
+    .c-todo a { font-weight: 700; text-decoration: none; }
+    .c-mois { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--texte-doux); margin: 22px 0 8px; }
+    .c-mois:first-child { margin-top: 0; }
+    .c-ev { display: grid; grid-template-columns: 64px 14px minmax(0,1fr) auto; gap: 12px; align-items: stretch; text-decoration: none; color: inherit; }
+    .c-ev .jour { text-align: right; padding: 12px 0; line-height: 1.1; }
+    .c-ev .jour b { display: block; font-size: 1.4rem; }
+    .c-ev .jour span { font-size: .72rem; color: var(--texte-doux); text-transform: uppercase; font-weight: 600; }
+    .c-ev .rail { position: relative; }
+    .c-ev .rail::before { content: ""; position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: var(--bordure); }
+    .c-ev .rail::after { content: ""; position: absolute; left: 1px; top: 18px; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 2px solid #999; }
+    .c-ev[data-ton="rouge"] .rail::after { background: var(--rouge); border-color: var(--rouge); }
+    .c-ev[data-ton="vert"] .rail::after { background: var(--vert); border-color: var(--vert); }
+    .c-ev .corps { background: #fff; border: 1px solid var(--bordure); border-radius: var(--rayon); padding: 12px 14px; margin: 4px 0; }
+    .c-ev:hover .corps { border-color: var(--rouge); }
+    .c-ev .droite { display: none; }
+    .c-progression { display: flex; gap: 3px; margin-top: 8px; }
+    .c-progression i { flex: 1; height: 5px; border-radius: 3px; background: #E2E2E2; }
+    .c-progression i.ok { background: var(--vert); }
+    .c-progression i.ici { background: var(--rouge); }
+    .c-etape { font-size: .75rem; color: var(--texte-doux); margin-top: 4px; }
+    .c-ev[data-ton="gris"] .corps { opacity: .6; }
+    @media (max-width: 600px) { .c-ev { grid-template-columns: 44px 14px minmax(0,1fr); } }
+  </style>
+</head>
+<body>
+  <div class="barre-outils"><div class="conteneur barre-outils__interieur"><span>Intranet ÉTS</span><span class="avatar">VS</span></div></div>
+  <header class="entete">
+    <div class="conteneur entete__interieur">
+      <span class="marque"><img src="../assets/logo-ets.png" alt="" width="64" height="64"><span class="marque__texte">École de<br>technologie<br>supérieure</span></span>
+      <div class="entete__app"><span class="entete__titre">Événements</span><span class="entete__sous-titre">Espace demandeur</span></div>
+    </div>
+    <nav class="nav-principale"><div class="conteneur"><a aria-current="page">Mes événements</a><a>Nouvel événement</a><a>Aide et FAQ</a></div></nav>
+  </header>
+
+  <main class="conteneur" id="contenu">
+    <div class="avis no-print" style="margin-bottom:12px"><strong>Maquettes — tableau de bord</strong>
+      Trois présentations des mêmes données. Rien n'est cliquable au-delà de cette page.</div>
+    <div class="choix" role="group" aria-label="Proposition">
+      <button data-p="a" aria-pressed="true">A · Priorités</button>
+      <button data-p="b" aria-pressed="false">B · Parcours</button>
+      <button data-p="c" aria-pressed="false">C · Agenda</button>
+    </div>
+    <p class="intention" id="intention"></p>
+    <div id="vue"></div>
+  </main>
+
+  <script src="../js/services.js"></script>
+  <script>
+  (async function () {
+    const S = window.Services;
+    const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juill.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    const MOIS_LONGS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    const JOURS = ['dim.', 'lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.'];
+    const h = (v) => String(v ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+    const d = (iso) => new Date(iso + 'T00:00:00');
+    const heure = (t) => (t || '').replace(/^0/, '').replace(':', ' h ').replace(' h 00', ' h');
+    const salle = (id) => (S.SALLES.find((s) => s.id === id) || { nom: id }).nom.split(' — ')[0];
+    const dans = (n) => n === 0 ? 'aujourd’hui' : n === 1 ? 'demain' : n > 0 ? `dans ${n} j` : `il y a ${-n} j`;
+    const statut = (e) => `<span class="statut statut--${S.STATUTS[e.statut].classe}">${S.STATUTS[e.statut].libelle}</span>`;
+    const lien = (e) => '../index.html#/evenement/' + e.id;
+
+    const tous = (await S.MFiles.mesDemandes()).sort((a, b) => a.date.localeCompare(b.date));
+    const j = (e) => S.joursAvant(e.date);
+
+    // Même logique que l'app : ce que le demandeur doit faire.
+    function action(e) {
+      if (e.statut === 'salle') return { quoi: 'Demande à compléter', verbe: 'Compléter la demande' };
+      if (e.statut === 'fiche') return { quoi: 'Fiche à valider', verbe: 'Valider la fiche' };
+      if (e.statut === 'revision') return { quoi: 'La Régie attend une réponse', verbe: 'Répondre' };
+      if (e.statut === 'planifie' && j(e) >= 0 && j(e) <= 10) {
+        const n = Object.values(e.verifications || {}).filter(Boolean).length;
+        if (n < 4) return { quoi: `Vérifications J-${j(e)} (${n}/4)`, verbe: 'Vérifier' };
+      }
+      return null;
+    }
+    const actifs = tous.filter((e) => e.statut !== 'annule' && j(e) >= 0);
+    const urgents = actifs.filter(action);
+    const clos = tous.filter((e) => e.statut === 'annule' || j(e) < 0);
+
+    // --- A : Priorités ----------------------------------------------------
+    function vueA() {
+      const ligne = (e) => `<div class="a-ligne">
+        <div class="mini-date"><b>${d(e.date).getDate()}</b><span>${MOIS[d(e.date).getMonth()]}</span></div>
+        <div><a class="titre-ev" href="${lien(e)}">${h(e.titre)}</a><div class="meta">${heure(e.debut)} – ${heure(e.fin)} · ${h(salle(e.salles[0]))} · ${dans(j(e))}</div></div>
+        <div>${statut(e)}</div></div>`;
+      const groupe = (titre, liste, vide) => `<section class="a-groupe"><h2>${titre}<span class="compte">${liste.length}</span></h2>
+        ${liste.length ? liste.map(ligne).join('') : `<div class="a-calme">${vide}</div>`}</section>`;
+      return `
+        <h1 style="margin-bottom:4px">Bonjour Vincent</h1>
+        <p class="doux" style="margin-bottom:20px">${urgents.length ? `<b style="color:var(--rouge)">${urgents.length} action${urgents.length > 1 ? 's' : ''}</b> attendent votre intervention.` : 'Rien ne vous attend : tout suit son cours.'}</p>
+        <div class="a-actions">${urgents.map((e) => { const a = action(e); return `<div class="a-action">
+          <span class="quoi">${a.quoi}</span>
+          <a class="titre-ev" href="${lien(e)}">${h(e.titre)}</a>
+          <span class="meta">${d(e.date).getDate()} ${MOIS_LONGS[d(e.date).getMonth()]} · ${dans(j(e))}</span>
+          <a class="bouton" href="${lien(e)}" style="margin-top:10px">${a.verbe}</a></div>`; }).join('')}</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+          <h2 style="margin:0">Tous mes événements</h2><a class="bouton bouton--secondaire" href="#">+ Nouvel événement</a></div>
+        ${groupe('Chez la Régie des événements', actifs.filter((e) => ['attente', 'traitement'].includes(e.statut)), 'Aucune demande en traitement.')}
+        ${groupe('Planifiés', actifs.filter((e) => e.statut === 'planifie'), 'Aucun événement planifié.')}
+        <details><summary class="doux" style="cursor:pointer;font-weight:600">Annulés et passés (${clos.length})</summary>${clos.map(ligne).join('')}</details>`;
+    }
+
+    // --- B : Parcours -----------------------------------------------------
+    function vueB() {
+      const cols = [
+        ['À compléter', 'Vous', (e) => e.statut === 'salle', true],
+        ['Chez la Régie', 'La Régie prépare la fiche', (e) => ['attente', 'traitement'].includes(e.statut)],
+        ['À valider', 'Vous', (e) => ['fiche', 'revision'].includes(e.statut), true],
+        ['Planifiés', 'Prêts — vérifications 10 jours avant', (e) => e.statut === 'planifie'],
+      ];
+      const carte = (e) => { const a = action(e); return `<a class="b-carte ${a ? 'b-carte--urgent' : ''}" href="${lien(e)}">
+        <div class="ligne"><div class="mini-date"><b>${d(e.date).getDate()}</b><span>${MOIS[d(e.date).getMonth()]}</span></div>
+        <div><div class="titre-ev">${h(e.titre)}</div><div class="meta">${heure(e.debut)} · ${h(salle(e.salles[0]))}</div></div></div>
+        ${a ? `<div class="faire">→ ${a.verbe}</div>` : `<div class="meta" style="margin-top:6px">${S.STATUTS[e.statut].libelle} · ${dans(j(e))}</div>`}</a>`; };
+      return `
+        <div class="entete-page"><div><h1>Mes événements</h1>
+          <p class="doux" style="margin:0">Chaque colonne est une étape du processus. Les colonnes roses attendent une action de votre part.</p></div>
+          <a class="bouton" href="#">+ Nouvel événement</a></div>
+        <div class="b-colonnes">${cols.map(([t, qui, f, vous]) => { const l = actifs.filter(f); return `<section class="b-col ${vous ? 'b-col--vous' : ''}">
+          <h2>${t}<span class="compte ${vous && l.length ? 'compte--rouge' : ''}">${l.length}</span></h2><p class="qui">${qui}</p>
+          ${l.map(carte).join('') || '<p class="meta" style="margin:4px">—</p>'}</section>`; }).join('')}</div>
+        <p class="b-pied doux">${clos.length} événement(s) annulé(s) ou passé(s) · <a href="#">Voir l’archive</a></p>`;
+    }
+
+    // --- C : Agenda -------------------------------------------------------
+    function vueC() {
+      const rang = { salle: 1, attente: 2, traitement: 2, fiche: 3, revision: 3, planifie: 4 };
+      const ev = (e) => {
+        const a = action(e), r = rang[e.statut] || 0;
+        const ton = e.statut === 'annule' ? 'gris' : a ? 'rouge' : e.statut === 'planifie' ? 'vert' : '';
+        return `<a class="c-ev" href="${lien(e)}" data-ton="${ton}">
+          <div class="jour"><b>${d(e.date).getDate()}</b><span>${JOURS[d(e.date).getDay()]}</span></div>
+          <div class="rail"></div>
+          <div class="corps">
+            <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><span class="titre-ev">${h(e.titre)}</span>${statut(e)}</div>
+            <div class="meta">${heure(e.debut)} – ${heure(e.fin)} · ${h(salle(e.salles[0]))} · ${h(e.participants || '?')} pers.</div>
+            ${e.statut !== 'annule' ? `<div class="c-progression" aria-hidden="true">${[1, 2, 3, 4].map((k) => `<i class="${k < r || (k === 4 && r === 4) ? 'ok' : k === r ? (a ? 'ici' : 'ok') : ''}"></i>`).join('')}</div>
+            <div class="c-etape">${a ? '<b style="color:var(--rouge)">→ ' + a.verbe + '</b>' : ['', 'Salle réservée', 'Demande transmise à la Régie', 'Fiche proposée', 'Planifié — salle confirmée'][r]}</div>` : ''}
+          </div></a>`;
+      };
+      const parMois = {};
+      tous.filter((e) => j(e) >= 0).forEach((e) => { const k = e.date.slice(0, 7); (parMois[k] = parMois[k] || []).push(e); });
+      return `
+        <div class="c-grille">
+          <aside class="c-panneau">
+            <section class="carte"><h2>À faire <span class="compte compte--rouge">${urgents.length}</span></h2>
+              <ul class="c-todo">${urgents.map((e) => `<li><a href="${lien(e)}">${action(e).verbe}</a><div class="meta">${h(e.titre)} · ${dans(j(e))}</div></li>`).join('')}</ul></section>
+            <section class="carte"><h2>En bref</h2>
+              <p class="petit" style="margin:0">${actifs.filter((e) => ['attente', 'traitement'].includes(e.statut)).length} chez la Régie<br>
+              ${actifs.filter((e) => e.statut === 'planifie').length} planifié(s)<br>${clos.length} annulé(s) ou passé(s)</p></section>
+            <a class="bouton" href="#" style="width:100%">+ Nouvel événement</a>
+          </aside>
+          <section>
+            <h1>Mon agenda d’événements</h1>
+            ${Object.entries(parMois).map(([k, l]) => `<div class="c-mois">${MOIS_LONGS[+k.slice(5) - 1]} ${k.slice(0, 4)}</div>${l.map(ev).join('')}`).join('')}
+          </section>
+        </div>`;
+    }
+
+    const VUES = {
+      a: [vueA, 'A · Priorités — ce qui vous attend en grandes cartes en tête, puis le reste regroupé par situation. Pour qui veut savoir en une seconde « qu’est-ce que je dois faire ? ».'],
+      b: [vueB, 'B · Parcours — une colonne par étape du processus, comme un tableau Kanban. Montre d’un coup d’œil où en est chaque événement et qui a la balle (vous ou la Régie).'],
+      c: [vueC, 'C · Agenda — les événements dans l’ordre du calendrier, groupés par mois, avec une barre de progression; les actions restent dans une colonne fixe à gauche. Pour qui pense « par date ».'],
+    };
+    function montrer(p) {
+      document.querySelectorAll('[data-p]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.p === p));
+      document.getElementById('vue').innerHTML = VUES[p][0]();
+      document.getElementById('intention').textContent = VUES[p][1];
+      try { history.replaceState(null, '', '#' + p); } catch (_) {}
+    }
+    document.querySelectorAll('[data-p]').forEach((b) => b.onclick = () => montrer(b.dataset.p));
+    const depuisAncre = () => montrer(VUES[location.hash.slice(1)] ? location.hash.slice(1) : 'a');
+    window.addEventListener('hashchange', depuisAncre);
+    depuisAncre();
+  })();
+  </script>
+</body>
+</html>
