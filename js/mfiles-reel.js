@@ -189,6 +189,57 @@
     } catch (_) { /* message mal formé : ignoré */ }
   });
 
+  // --- Prélude (disponibilités réelles, lecture seule) ---------------------
+  // Relevé le 1er octobre 2026 en observant le portail : les salles viennent
+  // de syncApi/availability/rooms, leur disponibilité de
+  // api/portalAvailability/getRoomsAvailability. Voir BRANCHEMENT-PRELUDE.md.
+  const GROUPE_EVENEMENTS = '1dde7a86-9bf5-4af3-aeaa-08bc942dda88';
+  const NUL = '00000000-0000-0000-0000-000000000000';
+  const CRITERES = { building: NUL, campus: NUL, configurationTypes: [], roomTypes: [], floorLevels: [], pavilions: [], spaceCharacteristics: [], minCapacity: 0, minArea: 0 };
+  async function prelude(chemin, corps) {
+    const r = await fetch('/prelude/' + chemin, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(corps) });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401) throw new Error('Aucun jeton Prélude, ou jeton expiré : ouvrez « Connexion M-Files » pour en fournir un.');
+    if (!r.ok || d.success === false) throw new Error(`Prélude a répondu ${r.status} : ${d.Message || (d.exception && d.exception.message) || 'sans détail'}`);
+    return d.response;
+  }
+  const minutes = (t) => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
+  const PreludeReel = {
+    async disponibilites({ date, debut, fin, participants }) {
+      const salles = (await prelude('syncApi/availability/rooms', { requestType: GROUPE_EVENEMENTS, criteria: CRITERES })).data || [];
+      const [a, m, j] = date.split('-').map(Number);
+      const jour = Date.UTC(a, m - 1, j) / 1000;
+      const dispo = await prelude('api/portalAvailability/getRoomsAvailability', {
+        startTime: minutes(debut), endTime: minutes(fin), duration: minutes(fin) - minutes(debut), date: jour,
+        unavailableWanted: true, occurrences: [], requestType: GROUPE_EVENEMENTS, roomCriteria: CRITERES, roomIds: salles.map((x) => x.guid),
+        recurrenceOptions: { endType: 1, month: 1, type: 0, every: 1, rank: 0, rankType: 1, rankNumber: 0, weekDays: '', dayOfMonth: 1, endOccurrences: 10, endDate: jour },
+      });
+      return salles.map((x) => {
+        const c = x.listContent || [];
+        const d = (dispo || []).find((y) => y.roomId === x.guid);
+        const messages = d ? (d.validationResult || []).filter(Boolean) : ['Aucune disponibilité rendue'];
+        const capacite = Number(c[2]) || 0;
+        return {
+          id: x.guid, nom: `${c[0]} — ${c[4]}`, pavillon: 'Pavillon ' + (x.buildingDisplay || '?'), type: 'Événement', capacite,
+          libre: messages.length === 0, raison: messages[0] || '', tropPetite: capacite > 0 && Number(participants) > capacite,
+          typeDemande: d && d.requestTypes ? d.requestTypes[0] : null,
+        };
+      }).sort((x, y) => (y.libre - x.libre) || x.nom.localeCompare(y.nom));
+    },
+  };
+  S.PreludeReel = {
+    async etat() { try { const e = await (await fetch('/jeton-prelude/etat')).json(); return e.expiration ? new Date(e.expiration * 1000) : null; } catch (_) { return null; } },
+  };
+
+  // Les jetons Prélude arrivent d'une fenêtre Prélude (outils/jeton-prelude.js).
+  if (local) window.addEventListener('message', (ev) => {
+    if (ev.origin !== 'https://prelude.etsmtl.ca' || !ev.data || ev.data.type !== 'jeton-prelude') return;
+    const valide = (j) => typeof j === 'string' && /^[\w-]+\.[\w-]+\.[\w-]*$/.test(j);
+    if (!valide(ev.data.sync) || !valide(ev.data.app)) return;
+    fetch('/jeton-prelude', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sync: ev.data.sync, app: ev.data.app }) })
+      .then((r) => { if (r.ok) { ev.source.postMessage('jeton-prelude-recu', ev.origin); window.dispatchEvent(new CustomEvent('jeton-prelude-recu')); } });
+  });
+
   if (S.MFilesReel.actif()) {
     const demo = S.MFiles;
     S.MFiles = Object.assign({}, demo, {
@@ -196,6 +247,6 @@
       soumettreDemande: refus, modifierDemande: refus, approuverFiche: refus, refuserFiche: refus,
       repondreRevision: refus, designerDelegue: refus, cocherVerification: refus, annuler: refus, simulerRegie: refus,
     });
-    S.Prelude = Object.assign({}, S.Prelude, { reserver: refus });
+    S.Prelude = Object.assign({}, S.Prelude, { disponibilites: PreludeReel.disponibilites, reserver: refus });
   }
 })();

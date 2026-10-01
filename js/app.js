@@ -371,14 +371,14 @@
       const salles = await S.Prelude.disponibilites(b);
       r.innerHTML = `<form class="carte" id="f-choix">
         <h2>Salles pour le ${dateLongue(b.date)}, de ${heure(b.debut)} à ${heure(b.fin)}</h2>
-        <p class="doux petit">Capacités et disponibilités fictives en attendant le branchement de Prélude. Consultez <a href="https://intranet.etsmtl.ca/content/602/capacite-et-amenagement-des-espaces" target="_blank" rel="noopener">Capacité et aménagement des espaces</a>.</p>
+        <p class="doux petit">${S.MFilesReel && S.MFilesReel.actif() ? 'Disponibilités réelles lues dans Prélude.' : 'Capacités et disponibilités fictives en attendant le branchement de Prélude.'} Consultez <a href="https://intranet.etsmtl.ca/content/602/capacite-et-amenagement-des-espaces" target="_blank" rel="noopener">Capacité et aménagement des espaces</a>.</p>
         <fieldset class="salles"><legend class="evitement">Choisissez une salle</legend>
           ${salles.map((s) => {
             const indispo = !s.libre;
             return `<label class="salle ${indispo ? 'salle--indispo' : ''}">
               <input type="radio" name="salle" value="${s.id}" ${indispo ? 'disabled' : ''} ${b.salle === s.id ? 'checked' : ''}>
               <span><b>${h(s.nom)}</b><br><span class="petit doux">${h(s.pavillon)} · ${h(s.type)} · jusqu’à ${s.capacite} personnes${s.tropPetite ? ' · <span style="color:var(--rouge)">trop petite pour ' + h(b.participants) + '</span>' : ''}</span></span>
-              <span class="dispo ${indispo ? 'dispo--non' : 'dispo--oui'}">${indispo ? 'Occupée' : 'Disponible'}</span></label>`;
+              <span class="dispo ${indispo ? 'dispo--non' : 'dispo--oui'}">${indispo ? (s.raison ? h(s.raison.replace(/^La salle est /, '').replace(/\.$/, '')) : 'Occupée') : 'Disponible'}</span></label>`;
           }).join('')}
         </fieldset>
         <p class="petit doux" style="margin-top:12px">Besoin de plusieurs salles ? Réservez la principale ici et indiquez les autres dans la demande d’événement : la Régie les ajoutera dans Prélude.</p>
@@ -983,6 +983,15 @@
         <div id="resultat-test"></div>
       </section>
       <section class="carte">
+        <h2>Prélude (disponibilités)</h2>
+        <ol class="liste-simple">
+          <li>Ouvrez <a href="https://prelude.etsmtl.ca/portal/p/" target="_blank" rel="noopener">Prélude</a> et connectez-vous.</li>
+          <li><button class="lien" id="copier-script-prelude" type="button">Copiez le script Prélude</button>, collez-le dans la console de Prélude, Entrée.</li>
+          <li>Dans Prélude, ouvrez « Nouvelle réservation » et cliquez une date ; puis « Envoyer à la page locale » dans l\u2019encadré.</li>
+        </ol>
+        <p class="petit" id="etat-prelude">État : vérification…</p>
+      </section>
+      <section class="carte">
         <h2>3. Mode de la page</h2>
         <p>${R.actif() ? '<b>M-Files réel</b> : « Mes événements » affiche vos vraies demandes.' : '<b>Démo</b> : données fictives.'}</p>
         <button class="bouton ${R.actif() ? 'bouton--neutre' : ''}" id="basculer" type="button">${R.actif() ? 'Revenir à la démo' : 'Passer en M-Files réel'}</button>
@@ -995,6 +1004,16 @@
       </section>`, 'Connexion M-Files');
 
     const $ = (x) => document.getElementById(x);
+    const majPrelude = async () => {
+      const fin = S.PreludeReel ? await S.PreludeReel.etat() : null;
+      $('etat-prelude').textContent = 'État : ' + (!fin ? 'aucun jeton Prélude' : fin < new Date() ? 'jetons expirés' : 'jetons valides jusqu\u2019à ' + fin.toLocaleTimeString('fr-CA'));
+    };
+    majPrelude();
+    window.addEventListener('jeton-prelude-recu', majPrelude);
+    $('copier-script-prelude').onclick = async () => {
+      const code = await (await fetch('outils/jeton-prelude.js')).text();
+      try { await navigator.clipboard.writeText(code); toast('Script Prélude copié.'); } catch (_) { toast('Copie refusée par le navigateur.'); }
+    };
     $('copier-script').onclick = async () => {
       const code = await (await fetch('outils/jeton-mfiles.js')).text();
       try { await navigator.clipboard.writeText(code); toast('Script copié.'); } catch (_) { toast('Copie refusée par le navigateur.'); }
