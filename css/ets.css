@@ -248,3 +248,18 @@ dialog h2 { margin-bottom: .4em; }
   .barre-outils, .nav-principale, .pied, .actions, .no-print { display: none !important; }
   body { background: #fff; }
 }
+
+/* Horaire : heure de début + durée en pastilles */
+.plage { border: 1px solid var(--bordure); border-radius: var(--rayon); padding: 14px 16px; }
+.plage:has(input.invalide) { border-color: var(--rouge); }
+.plage__periode { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 10px; align-items: start; margin-bottom: 6px; }
+.plage__nom { font-size: .8rem; font-weight: 600; color: var(--texte-doux); padding-top: 8px; }
+@media (max-width: 600px) { .plage__periode { grid-template-columns: 1fr; gap: 4px; } .plage__nom { padding-top: 4px; } }
+.pastilles { display: flex; flex-wrap: wrap; gap: 6px; }
+.pastille { font: inherit; font-size: .85rem; font-weight: 600; min-width: 68px; min-height: 38px; padding: 6px 10px; border: 1px solid #BDBDBD;
+  border-radius: var(--rayon); background: #fff; color: var(--texte); cursor: pointer; }
+.pastille:hover { border-color: var(--rouge); color: var(--rouge); }
+.pastille[aria-pressed="true"] { background: var(--rouge); border-color: var(--rouge); color: #fff; }
+.pastille:disabled { opacity: .35; cursor: not-allowed; border-color: #ddd; color: #999; }
+.pastille--duree { min-width: 0; padding: 6px 14px; }
+.plage__resume { margin: 12px 0 0; padding: 10px 12px; background: #F5F5F5; border-radius: var(--rayon); font-size: .95rem; }

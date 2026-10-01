@@ -25,18 +25,64 @@
   const initiales = (n) => n.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
   const dans = (n) => n === 0 ? 'aujourd’hui' : n === 1 ? 'demain' : n > 0 ? `dans ${n} jours` : `il y a ${-n} jours`;
 
-  // Heures au quart d'heure, de 7 h à 23 h : on choisit, on n'écrit pas.
-  const HEURES = [];
-  for (let m = 7 * 60; m <= 23 * 60; m += 15) HEURES.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
-  const choixHeure = (id, valeur) => `<select id="${id}"><option value="">Choisir…</option>${HEURES.map((t) => `<option value="${t}" ${t === valeur ? 'selected' : ''}>${heure(t)}</option>`).join('')}</select>`;
-  // Début choisi sans fin valable : on propose une heure plus tard.
+  // Horaire : on clique l'heure de début, puis une durée ; la fin se calcule.
+  // Les valeurs vivent dans deux champs cachés #debut et #fin (HH:MM).
+  const enMin = (t) => { const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
+  const enHeure = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const duree = (m) => m >= 60 ? Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : '') : m + ' min';
+  const LIMITE = 23 * 60;
+  const PERIODES = [['Matin', 7 * 60, 12 * 60], ['Après-midi', 12 * 60, 17 * 60], ['Soir', 17 * 60, 22 * 60 + 30]];
+  const DUREES = [30, 60, 90, 120, 180, 240, 480];
+
+  function champHoraire(debut, fin) {
+    const d = debut ? enMin(debut) : null;
+    const dur = debut && fin ? enMin(fin) - enMin(debut) : null;
+    const durees = DUREES.slice();
+    if (dur > 0 && !durees.includes(dur)) durees.push(dur);
+    durees.sort((x, y) => x - y);
+    return `<div class="champ plage">
+      <span class="etiquette" id="lbl-debut">Heure de début <span class="requis">*</span></span>
+      ${PERIODES.map(([nom, de, a]) => {
+        const pastilles = [];
+        for (let m = de; m < a; m += 30) pastilles.push(`<button type="button" class="pastille" data-debut="${enHeure(m)}" aria-pressed="${m === d}">${heure(enHeure(m))}</button>`);
+        if (d !== null && d >= de && d < a && d % 30) pastilles.push(`<button type="button" class="pastille" data-debut="${enHeure(d)}" aria-pressed="true">${heure(enHeure(d))}</button>`);
+        return `<div class="plage__periode"><span class="plage__nom">${nom}</span><div class="pastilles" role="group" aria-labelledby="lbl-debut">${pastilles.join('')}</div></div>`;
+      }).join('')}
+      <span class="etiquette" id="lbl-duree" style="margin-top:14px">Durée <span class="requis">*</span></span>
+      <div class="pastilles" role="group" aria-labelledby="lbl-duree">
+        ${durees.map((m) => `<button type="button" class="pastille pastille--duree" data-duree="${m}" aria-pressed="${m === dur}">${m === 240 ? 'Demi-journée (4 h)' : m === 480 ? 'Journée (8 h)' : duree(m)}</button>`).join('')}
+      </div>
+      <p class="plage__resume" aria-live="polite"></p>
+      <input type="hidden" id="debut" value="${h(debut || '')}"><input type="hidden" id="fin" value="${h(fin || '')}">
+    </div>`;
+  }
+
   function lierHeures(f) {
-    f.debut.addEventListener('change', () => {
-      if (f.debut.value && (!f.fin.value || f.fin.value <= f.debut.value)) {
-        const i = HEURES.indexOf(f.debut.value);
-        f.fin.value = HEURES[Math.min(i + 4, HEURES.length - 1)];
-      }
+    const zone = f.querySelector('.plage');
+    let dur = f.debut.value && f.fin.value ? enMin(f.fin.value) - enMin(f.debut.value) : null;
+    const maj = () => {
+      const d = f.debut.value ? enMin(f.debut.value) : null;
+      zone.querySelectorAll('[data-debut]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.debut === f.debut.value));
+      zone.querySelectorAll('[data-duree]').forEach((b) => {
+        const m = +b.dataset.duree;
+        b.setAttribute('aria-pressed', m === dur);
+        b.disabled = d !== null && d + m > LIMITE;
+      });
+      if (d !== null && dur && d + dur > LIMITE) dur = null;
+      f.fin.value = d !== null && dur ? enHeure(d + dur) : '';
+      zone.querySelector('.plage__resume').innerHTML = d === null ? 'Choisissez l’heure de début.'
+        : !dur ? `Début à <b>${heure(f.debut.value)}</b> — choisissez la durée.`
+        : `De <b>${heure(f.debut.value)}</b> à <b>${heure(f.fin.value)}</b> (${duree(dur)})`;
+      f.debut.classList.remove('invalide'); f.fin.classList.remove('invalide');
+      f.dispatchEvent(new Event('change'));
+    };
+    zone.addEventListener('click', (ev) => {
+      const b = ev.target.closest('button'); if (!b) return;
+      if (b.dataset.debut) f.debut.value = b.dataset.debut;
+      if (b.dataset.duree) dur = +b.dataset.duree;
+      maj();
     });
+    maj();
   }
 
   function toast(texte) {
@@ -273,10 +319,9 @@
           <input type="text" id="titre" value="${h(b.titre || '')}" maxlength="120"></div>
         <div class="rangee">
           <div class="champ"><label for="date">Date <span class="requis">*</span></label><input type="date" id="date" min="${min}" value="${h(b.date || '')}"></div>
-          <div class="champ"><label for="debut">Début <span class="requis">*</span></label>${choixHeure('debut', b.debut)}</div>
-          <div class="champ"><label for="fin">Fin <span class="requis">*</span></label>${choixHeure('fin', b.fin)}</div>
           <div class="champ"><label for="participants">Participants <span class="requis">*</span></label><input type="number" id="participants" min="1" value="${h(b.participants || '')}"></div>
         </div>
+        ${champHoraire(b.debut, b.fin)}
         <p class="aide petit doux" style="margin-top:-8px">Heures de l’événement lui-même, sans le montage ni le démontage : la Régie les ajoute.</p>
         <div id="avis-dynamiques"></div>
         <div class="actions"><button class="bouton bouton--secondaire" type="submit">Voir les salles disponibles</button></div>
@@ -394,9 +439,8 @@
           <div class="rangee">
             <div class="champ"><span class="etiquette">Salle réservée</span>${h(e.salles.map(nomSalle).join(', '))}</div>
             <div class="champ"><label for="date">Date <span class="requis">*</span></label><input type="date" id="date" value="${v('date')}" ${creation ? 'readonly' : ''}></div>
-            <div class="champ"><label for="debut">Début <span class="requis">*</span></label>${choixHeure('debut', e.debut)}</div>
-            <div class="champ"><label for="fin">Fin <span class="requis">*</span></label>${choixHeure('fin', e.fin)}</div>
           </div>
+          ${champHoraire(e.debut, e.fin)}
           <p class="aide petit doux" style="margin-top:-8px">Sans le montage ni le démontage. Pour changer de salle ou de date, écrivez-le dans les précisions : la Régie ajuste Prélude.</p>
           <div class="champ"><label for="sallesSupplementaires">Salles supplémentaires</label>
             <p class="aide">Si l’événement demande d’autres salles (ateliers, vestiaire, salle des conférenciers), inscrivez-les ici : la Régie les ajoutera dans Prélude.</p>
