@@ -89,7 +89,7 @@
     const materiel = ['Table d’accueil avec 2 chaises'];
     if (d.nourriture === 'Oui') materiel.push('2 tables nappées pour le traiteur');
     if (d.bbq === 'Oui') materiel.push('Emplacement extérieur pour le BBQ');
-    if (d.besoinAffichage === 'Oui') (d.typesAffichage || []).forEach((t) => materiel.push('Affichage : ' + t.toLowerCase()));
+    if (d.besoinAffichage === 'Oui') (d.typesAffichage || []).forEach((t) => materiel.push('Affichage ' + t.toLowerCase()));
     if (d.direction === 'Oui' || d.invites === 'Oui') materiel.push('Lutrin et sièges réservés à l’avant');
     const services = ['Régie des événements', 'SGAI (aménagement)'];
     if (d.besoinAV === 'Oui' && !acc.includes(LIBRE_SERVICE)) services.push('Soutien audiovisuel');
@@ -135,16 +135,16 @@
         description: 'Journée de conférences et de tables rondes sur l’IA en génie, ouverte aux partenaires industriels.',
         participants: 150,
         besoinAV: 'Oui', precisionsAV: 'Panel de 5 personnes, diffusion en ligne.', accompagnement: ['Présence complète durant l\u2019événement'],
-        besoinAffichage: 'Oui', typesAffichage: ['Écrans numériques', 'Signalisation directionnelle'],
-        nourriture: 'Oui', traiteur: 'Service alimentaire de l\u2019ÉTS', bbq: 'Non', frais: 'Oui',
-        direction: 'Oui', membreDirection: 'Philippe Côté', roleDirection: 'Mot de bienvenue', conseiller: 'Marie-Ève Gagnon',
+        besoinAffichage: 'Oui', typesAffichage: ['Dans le cadre de l\u2019événement', 'Promotionnel'],
+        nourriture: 'Oui', traiteur: 'Interne', bbq: 'Non', frais: 'Oui',
+        direction: 'Oui', membreDirection: 'Philippe Côté', roleDirection: 'Prise de parole / Porte-parole institutionnel', conseiller: 'Marie-Ève Gagnon',
       }),
       base({
         id: 'EVT-2026-0398', titre: 'Midi-conférence : génie durable', statut: 'planifie',
         date: dansJours(8), debut: '12:00', fin: '13:15', salles: ['B-1204'],
         description: 'Présentation d’un projet étudiant suivie d’une période de questions.',
         participants: 35, besoinAV: 'Oui', accompagnement: ['Aide au démarrage'],
-        nourriture: 'Oui', traiteur: 'Service alimentaire de l\u2019ÉTS', bbq: 'Non',
+        nourriture: 'Oui', traiteur: 'Interne', bbq: 'Non',
         conseiller: 'Marie-Ève Gagnon',
       }),
       base({
@@ -152,8 +152,8 @@
         date: dansJours(52), debut: '17:00', fin: '19:30', salles: ['E-ATR'],
         description: 'Cérémonie de remise des bourses suivie d’un cocktail.',
         participants: 220, besoinAV: 'Oui', accompagnement: ['Besoins ou montage particuliers', 'Présence complète durant l\u2019événement'],
-        nourriture: 'Oui', traiteur: 'Traiteur externe', bbq: 'Non', alcool: 'Oui', permisAlcool: 'Oui',
-        direction: 'Oui', membreDirection: 'Sophie Lavoie', roleDirection: 'Remise de prix',
+        nourriture: 'Oui', traiteur: 'Externe', bbq: 'Non', alcool: 'Oui', permisAlcool: 'Oui',
+        direction: 'Oui', membreDirection: 'Sophie Lavoie', roleDirection: 'Représentation',
         invites: 'Oui', listeInvites: 'Représentante de la Fondation de l\u2019ÉTS\nConsul général de France (dignitaire étranger)',
         conseiller: 'Karim Benali',
       }),

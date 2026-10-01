@@ -18,12 +18,13 @@
     classe: 100, etape: 39, titre: 1596, description: 3606, demandeur: 1164, pourAutrui: 4479,
     dateDebut: 1529, dateFin: 1530, heureDebut: 4473, heureFin: 4478, local: 2419, participants: 4450,
     av: 4441, precisionsAV: 4453, accompagnement: 4520, affichage: 4535, nourriture: 4445,
-    alcool: 4537, permisAlcool: 4081, frais: 4439, direction: 4440, invites: 4492,
+    typesAffichage: 4552, precisionsAffichage: 4536, traiteur: 4501, bbq: 4447,
+    alcool: 4537, permisAlcool: 4081, frais: 4439, direction: 4440, membreDirection: 4504, roleDirection: 4503,
+    invites: 4492, listeInvites: 4451,
     conseiller: 4463, fiche: 4465, autorise: 4448,
   };
   const DEMANDE = { type: 359, classe: 1017 };
   const EMPLOYE = { type: 103, utilisateur: 1221 };
-  const ETAPES_PLANIFIE = [623, 607, 608];
 
   const lireSession = (k) => { try { return sessionStorage.getItem(k); } catch (_) { return null; } };
   const ecrireSession = (k, v) => { try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (_) {} };
@@ -66,16 +67,19 @@
   const lookups = (props, id) => { const p = val(props, id); if (!p) return []; const t = p.TypedValue; return (t.Lookups || (t.Lookup ? [t.Lookup] : [])).map((l) => l.DisplayValue); };
   const heureNorm = (t) => { const m = /(\d{1,2})\s*[h:]\s*(\d{2})?/i.exec(t || ''); return m ? m[1].padStart(2, '0') + ':' + (m[2] || '00') : ''; };
 
-  // L'étape du workflow 144 ramenée aux six statuts de la page. PROVISOIRE :
-  // la vraie correspondance est à établir avec la Régie (BRANCHEMENT-MFILES.md §4).
+  // L'étape du workflow 144 ramenée aux six statuts de la page, d'après les
+  // noms relevés le 1er octobre 2026 (releves/workflow-144-etats.json).
+  // PROVISOIRE : à valider avec la Régie (BRANCHEMENT-MFILES.md §4).
+  const ETATS = {
+    attente: [620, 619, 631, 648, 668, 640, 625],          // 1a, 2, 1d et aiguillages du début
+    traitement: [628, 649, 650, 652, 662, 663, 651, 653, 661, 635, 636, 666], // 3, 1b-1e, 4b, 5
+    fiche: [634],                                           // 4a. Validation de la fiche événement
+    planifie: [623, 607, 608, 622, 629, 630, 632, 633, 637, 638, 669, 670, 671, 672], // 6-9 et notifications
+    annule: [621, 644, 641, 667],                           // 10a, 10b, 11a, 11b
+  };
   function statutDe(idEtape, nomEtape) {
-    const n = (nomEtape || '').toLowerCase();
-    if (/annul|non recevable|refus/.test(n)) return 'annule';
-    if (ETAPES_PLANIFIE.includes(idEtape)) return 'planifie';
-    if (/fiche/.test(n) && /valid|approb/.test(n)) return 'fiche';
-    if (/révision|revision|précision|precision/.test(n)) return 'revision';
-    if (/analyse|assign|attente/.test(n)) return 'attente';
-    return 'traitement';
+    for (const [statut, ids] of Object.entries(ETATS)) if (ids.includes(idEtape)) return statut;
+    return /annul|non recevable/i.test(nomEtape || '') ? 'annule' : 'traitement';
   }
 
   function enEvenement(objet, props) {
@@ -89,12 +93,15 @@
       demandeur: lookups(props, P.demandeur).join(', '), pourAutrui: ouiNon(props, P.pourAutrui) === 'Oui',
       date: debut || S.iso(S.aujourdhui()), dateFin: date(props, P.dateFin) || debut,
       debut: heureNorm(texte(props, P.heureDebut)), fin: heureNorm(texte(props, P.heureFin)),
-      salles: [texte(props, P.local) || 'Local non précisé'], participants: texte(props, P.participants),
+      salles: (lookups(props, P.local).length ? lookups(props, P.local) : ['Local non précisé']), participants: texte(props, P.participants),
       besoinAV: ouiNon(props, P.av), precisionsAV: texte(props, P.precisionsAV), accompagnement: lookups(props, P.accompagnement),
       besoinAffichage: ouiNon(props, P.affichage), nourriture: ouiNon(props, P.nourriture), alcool: ouiNon(props, P.alcool),
       permisAlcool: ouiNon(props, P.permisAlcool), frais: ouiNon(props, P.frais), direction: ouiNon(props, P.direction), invites: ouiNon(props, P.invites),
-      typesAffichage: [], conseiller: texte(props, P.conseiller),
-      statut: statutDe(idEtape, nomEtape), ficheApprouvee: ETAPES_PLANIFIE.includes(idEtape),
+      typesAffichage: lookups(props, P.typesAffichage), precisionsAffichage: texte(props, P.precisionsAffichage),
+      traiteur: texte(props, P.traiteur), bbq: ouiNon(props, P.bbq),
+      membreDirection: lookups(props, P.membreDirection).join(', '), roleDirection: texte(props, P.roleDirection),
+      listeInvites: texte(props, P.listeInvites), conseiller: texte(props, P.conseiller),
+      statut: statutDe(idEtape, nomEtape), ficheApprouvee: ETATS.planifie.includes(idEtape),
       fiche: null, ficheMFiles: texte(props, P.fiche),
       delegue: null, verifications: {}, messages: [],
       historique: [{ date: new Date().toISOString(), texte: 'Étape M-Files : ' + (nomEtape || 'inconnue') }],

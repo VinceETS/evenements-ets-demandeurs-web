@@ -411,10 +411,11 @@
   // ordre. Chaque question oui/non est obligatoire, comme les booléens de
   // M-Files, et ouvre ses sous-champs quand on répond oui.
 
-  // Valeurs d'exemple : les vraies listes M-Files n'ont pas encore été lues.
-  const TYPES_AFFICHAGE = ['Affiches', 'Écrans numériques', 'Signalisation directionnelle', 'Bannière ou kakémono'];
-  const TRAITEURS = ['Service alimentaire de l’ÉTS', 'Traiteur externe'];
-  const ROLES_DIRECTION = ['Allocution', 'Mot de bienvenue', 'Remise de prix', 'Présence seulement'];
+  // Valeurs des listes M-Files, relevées dans le vault le 1er octobre 2026
+  // (releves/liste-946, -166, -938). Au branchement, elles se liront en direct.
+  const TYPES_AFFICHAGE = ['Dans le cadre de l\u2019événement', 'Promotionnel'];   // liste 946
+  const TRAITEURS = ['Interne', 'Externe'];                                         // liste 166
+  const ROLES_DIRECTION = ['Prise de parole / Porte-parole institutionnel', 'Représentation', 'Participation à un panel', 'Autre']; // liste 938
 
   const choix = (nom, valeur, options) => `<div class="pastilles" role="radiogroup">${options.map((o) =>
     `<label class="pastille pastille--radio"><input type="radio" name="${nom}" value="${h(o)}" ${o === valeur ? 'checked' : ''}> ${h(o)}</label>`).join('')}</div>`;
@@ -499,7 +500,7 @@
             </fieldset>
             <div class="champ"><label for="precisionsAffichage">Précisions</label><textarea id="precisionsAffichage">${v('precisionsAffichage')}</textarea></div>`)}
           ${question('nourriture', 'Service de nourriture ?', e.nourriture, `
-            <fieldset><legend class="etiquette">Traiteur <span class="requis">*</span></legend>${choix('traiteur', e.traiteur, TRAITEURS)}</fieldset>
+            <fieldset><legend class="etiquette">Traiteur interne ou externe ? <span class="requis">*</span></legend>${choix('traiteur', e.traiteur, TRAITEURS)}</fieldset>
             <fieldset><legend class="etiquette">BBQ ? <span class="requis">*</span></legend>${choix('bbq', e.bbq, ['Oui', 'Non'])}</fieldset>`)}
           ${question('alcool', 'Consommation d’alcool ?', e.alcool, `
             <fieldset><legend class="etiquette">Permis d’alcool requis ? <span class="requis">*</span></legend>${choix('permisAlcool', e.permisAlcool, ['Oui', 'Non'])}</fieldset>
