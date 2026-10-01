@@ -377,8 +377,8 @@
             const indispo = !s.libre;
             return `<label class="salle ${indispo ? 'salle--indispo' : ''}">
               <input type="radio" name="salle" value="${s.id}" ${indispo ? 'disabled' : ''} ${b.salle === s.id ? 'checked' : ''}>
-              <span><b>${h(s.nom)}</b><br><span class="petit doux">${h(s.pavillon)} · ${h(s.type)} · jusqu’à ${s.capacite} personnes${s.tropPetite ? ' · <span style="color:var(--rouge)">trop petite pour ' + h(b.participants) + '</span>' : ''}</span></span>
-              <span class="dispo ${indispo ? 'dispo--non' : 'dispo--oui'}">${indispo ? (s.raison ? h(s.raison.replace(/^La salle est /, '').replace(/\.$/, '')) : 'Occupée') : 'Disponible'}</span></label>`;
+              <span><b>${h(s.nom)}</b><br><span class="petit doux">${h(s.pavillon)} · ${h(s.type)} · ${s.capacite ? `jusqu’à ${s.capacite} personnes` : 'capacité non précisée'}${s.tropPetite ? ' · <span style="color:var(--rouge)">trop petite pour ' + h(b.participants) + '</span>' : ''}</span></span>
+              <span class="dispo ${indispo ? 'dispo--non' : 'dispo--oui'}">${indispo ? (s.raison ? h(s.raison.replace(/^La salle est /, '').replace(/\.$/, '').replace(/^./, (c) => c.toUpperCase())) : 'Occupée') : 'Disponible'}</span></label>`;
           }).join('')}
         </fieldset>
         <p class="petit doux" style="margin-top:12px">Besoin de plusieurs salles ? Réservez la principale ici et indiquez les autres dans la demande d’événement : la Régie les ajoutera dans Prélude.</p>
