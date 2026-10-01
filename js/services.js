@@ -51,6 +51,10 @@
     'Salle en libre service (aucun accompagnement requis)',
   ];
   const LIBRE_SERVICE = ACCOMPAGNEMENTS[3];
+  // « Format » (3742, liste 812) et « Public cible » (2857, liste 612),
+  // relevés dans le vault le 1er octobre 2026. Tous deux obligatoires.
+  const FORMATS = ['Activité de maillage', 'Activité de promotion de nos services', 'Activité organisée par des étudiants', 'Activité sociale - Prévention - Journée thématique', 'Allocution', 'Assemblée générale', 'Atelier', 'Banquet', 'Cérémonie', 'Cocktail', 'Collecte de sang', 'Colloque', 'Conférence', 'Conférence de presse', 'Conférence scientifique', 'Congrès', 'Cours', 'Dévoilement', 'Élection', 'Entrevue', 'Exposition', 'Formation conventionnelle', 'Gala / remise de prix', 'Inauguration', 'Kiosque', 'Lancement', 'Midi pizza', 'Panel', 'Réseautage', 'Séance d\u2019information', 'Séminaire', 'Table ronde', 'Visite', 'Webinaire', 'Autre'];
+  const PUBLICS = ['Cadres', 'Corps enseignant', 'Diplômé(e)s', 'Employé(e)s', 'Étudiant(e)s', 'Externe à l\u2019ÉTS', 'Futur(e)s étudiant(e)s', 'Grand public', 'Retraité(e)s', 'Autre'];
   const TYPES = ['Conférence', 'Colloque', 'Atelier / formation', 'Réception / cocktail', 'Cérémonie', 'Réunion', 'Lancement', 'Autre'];
 
   // --- Outils -------------------------------------------------------------
@@ -123,14 +127,14 @@
     const moi = PROFILS[0];
     const base = (o) => Object.assign({
       demandeur: moi.nom, demandeurCourriel: moi.courriel, creePar: moi.nom,
-      pourAutrui: false, salles: [], accompagnement: [], typesAffichage: [],
+      pourAutrui: false, salles: [], accompagnement: [], typesAffichage: [], format: '', publicCible: [], surCampus: 'Oui', unites: ['Service des technologies de l\u2019information'],
       besoinAV: 'Non', besoinAffichage: 'Non', nourriture: 'Non', alcool: 'Non', frais: 'Non', direction: 'Non', invites: 'Non',
       delegue: null, verifications: {}, messages: [], historique: [],
     }, o);
 
     const e = [
       base({
-        id: 'EVT-2026-0412', titre: 'Colloque en IA appliquée au génie', statut: 'fiche',
+        id: 'EVT-2026-0412', format: 'Colloque', publicCible: ['Corps enseignant', 'Étudiant(e)s', 'Externe à l\u2019ÉTS'], titre: 'Colloque en IA appliquée au génie', statut: 'fiche',
         date: dansJours(34), debut: '08:30', fin: '16:30', salles: ['A-1600'], dateFin: dansJours(35),
         description: 'Journée de conférences et de tables rondes sur l’IA en génie, ouverte aux partenaires industriels.',
         participants: 150,
@@ -140,7 +144,7 @@
         direction: 'Oui', membreDirection: 'Philippe Côté', roleDirection: 'Prise de parole / Porte-parole institutionnel', conseiller: 'Marie-Ève Gagnon',
       }),
       base({
-        id: 'EVT-2026-0398', titre: 'Midi-conférence : génie durable', statut: 'planifie',
+        id: 'EVT-2026-0398', format: 'Conférence', publicCible: ['Étudiant(e)s', 'Employé(e)s'], titre: 'Midi-conférence : génie durable', statut: 'planifie',
         date: dansJours(8), debut: '12:00', fin: '13:15', salles: ['B-1204'],
         description: 'Présentation d’un projet étudiant suivie d’une période de questions.',
         participants: 35, besoinAV: 'Oui', accompagnement: ['Aide au démarrage'],
@@ -148,7 +152,7 @@
         conseiller: 'Marie-Ève Gagnon',
       }),
       base({
-        id: 'EVT-2026-0421', titre: 'Remise des bourses d’excellence', statut: 'revision',
+        id: 'EVT-2026-0421', format: 'Gala / remise de prix', publicCible: ['Étudiant(e)s', 'Externe à l\u2019ÉTS'], titre: 'Remise des bourses d’excellence', statut: 'revision',
         date: dansJours(52), debut: '17:00', fin: '19:30', salles: ['E-ATR'],
         description: 'Cérémonie de remise des bourses suivie d’un cocktail.',
         participants: 220, besoinAV: 'Oui', accompagnement: ['Besoins ou montage particuliers', 'Présence complète durant l\u2019événement'],
@@ -158,7 +162,7 @@
         conseiller: 'Karim Benali',
       }),
       base({
-        id: 'EVT-2026-0433', titre: 'Atelier : rédiger un CV technique', statut: 'attente',
+        id: 'EVT-2026-0433', format: 'Atelier', publicCible: ['Étudiant(e)s'], titre: 'Atelier : rédiger un CV technique', statut: 'attente',
         date: dansJours(21), debut: '14:00', fin: '16:00', salles: ['D-5010'],
         description: 'Atelier pratique animé par le Service de l’emploi.', participants: 45,
         besoinAV: 'Oui', accompagnement: ['Salle en libre service (aucun accompagnement requis)'],
@@ -169,7 +173,7 @@
         besoinAV: '', besoinAffichage: '', nourriture: '', alcool: '', frais: '', direction: '', invites: '', pourAutrui: undefined,
       }),
       base({
-        id: 'EVT-2026-0377', titre: 'Lancement de l’ouvrage collectif', statut: 'annule',
+        id: 'EVT-2026-0377', format: 'Lancement', publicCible: ['Grand public'], titre: 'Lancement de l’ouvrage collectif', statut: 'annule',
         date: dansJours(4), debut: '16:00', fin: '18:00', salles: ['A-1150'],
         description: 'Lancement annulé : l’éditeur a reporté la parution.', participants: 80,
       }),
@@ -203,7 +207,7 @@
   // --- API publique -------------------------------------------------------
 
   const Services = {
-    STATUTS, ROLES, AMENAGEMENTS, ACCOMPAGNEMENTS, LIBRE_SERVICE, TYPES, SALLES, joursAvant, aujourdhui, iso,
+    STATUTS, ROLES, AMENAGEMENTS, FORMATS, PUBLICS, ACCOMPAGNEMENTS, LIBRE_SERVICE, TYPES, SALLES, joursAvant, aujourdhui, iso,
 
     // Entra ID (simulé) : en phase 2, lecture du jeton MSAL et de ses groupes.
     Identite: {
@@ -321,6 +325,13 @@
         }
         sauver(); return copie(e);
       },
+    },
+
+    // Remplis d'office (BRANCHEMENT-MFILES.md §3) : la salle vient de Prélude,
+    // donc l'événement est sur le campus ; l'unité est celle du demandeur.
+    champsAutomatiques(demandeur) {
+      const p = PROFILS.find((x) => x.nom === demandeur) || PROFILS.find((x) => x.id === etat.profil);
+      return { surCampus: 'Oui', unites: p && p.nom === demandeur ? [p.unite] : [] };
     },
 
     reinitialiser() { etat = etatInitial(); sauver(); },

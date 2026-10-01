@@ -461,6 +461,8 @@
         <div class="champ"><label for="description">Description de l’événement <span class="requis">*</span></label>
           <p class="aide">Objectif, déroulement, concept ou thématique : ce qui aide la Régie à vous proposer la bonne fiche.</p>
           <textarea id="description">${v('description')}</textarea></div>
+        <div class="champ"><label for="format">Format <span class="requis">*</span></label>
+          <select id="format"><option value="">Choisir…</option>${S.FORMATS.map((x) => `<option ${x === e.format ? 'selected' : ''}>${h(x)}</option>`).join('')}</select></div>
         ${question('pourAutrui', 'Demande effectuée pour une autre personne ?', pourAutrui,
           `<div class="champ"><label for="demandeur">Demandeur <span class="requis">*</span></label>
             <p class="aide">Choisissez la personne dans la liste des employés.</p>
@@ -482,6 +484,10 @@
 
         <div class="section-form">
           <h2>Public</h2>
+          <fieldset class="groupe-public"><legend class="etiquette">Public cible <span class="requis">*</span></legend>
+            <p class="aide">Cochez tout ce qui s\u2019applique.</p>
+            <div class="pastilles">${S.PUBLICS.map((x) => `<label class="pastille pastille--radio"><input type="checkbox" data-public="${h(x)}" ${(e.publicCible || []).includes(x) ? 'checked' : ''}> ${h(x)}</label>`).join('')}</div>
+          </fieldset>
           <div class="champ" style="max-width:240px"><label for="participants">Nombre de participants attendus <span class="requis">*</span></label><input type="number" min="1" id="participants" value="${v('participants')}"></div>
         </div>
 
@@ -563,7 +569,7 @@
       ev.preventDefault();
       const val = (k) => (f[k] ? f[k].value.trim() : '');
       const c = {
-        titre: val('titre'), description: val('description'), date: val('date'), dateFin: val('dateFin'),
+        titre: val('titre'), description: val('description'), format: val('format'), publicCible: cocher(f, 'data-public'), date: val('date'), dateFin: val('dateFin'),
         debut: val('debut'), fin: val('fin'), participants: val('participants'),
         pourAutrui: lire(f, 'pourAutrui') === 'Oui',
         besoinAV: lire(f, 'besoinAV'), precisionsAV: val('precisionsAV'), accompagnement: cocher(f, 'data-accompagnement'),
@@ -574,6 +580,7 @@
         invites: lire(f, 'invites'), listeInvites: val('listeInvites'),
       };
       c.demandeur = c.pourAutrui ? val('demandeur') : utilisateur.nom;
+      Object.assign(c, S.champsAutomatiques(c.demandeur));
       // Les sous-champs d'un « Non » ne sont pas gardés.
       if (c.besoinAV !== 'Oui') { c.precisionsAV = ''; c.accompagnement = []; }
       if (c.besoinAffichage !== 'Oui') { c.typesAffichage = []; c.precisionsAffichage = ''; }
@@ -588,9 +595,11 @@
       const zone = (nom) => f.querySelector(`[data-question="${nom}"]`);
       exiger(c.titre, f.titre, 'Le titre est obligatoire.');
       exiger(c.description, f.description, 'La description est obligatoire.');
+      exiger(c.format, f.format, 'Choisissez le format de l\u2019événement.');
       exiger(lire(f, 'pourAutrui'), zone('pourAutrui'), 'Indiquez si la demande est faite pour une autre personne.');
       if (c.pourAutrui) exiger(employes.includes(c.demandeur), f.demandeur, 'Choisissez le demandeur dans la liste des employés.');
       exiger(c.debut && c.fin, f.querySelector('.plage'), 'Choisissez l’heure de début et la durée.');
+      exiger(c.publicCible.length, f.querySelector('.groupe-public'), 'Choisissez au moins un public cible.');
       exiger(Number(c.participants) > 0, f.participants, 'Indiquez le nombre de participants.');
       [['besoinAV', 'l’audiovisuel'], ['besoinAffichage', 'l’affichage'], ['nourriture', 'la nourriture'], ['alcool', 'l’alcool'],
         ['frais', 'les frais d’inscription'], ['direction', 'la direction'], ['invites', 'les invités de marque']]
@@ -623,9 +632,13 @@
     return `<div class="fiche"><dl>
       <dt>Titre</dt><dd>${h(e.titre)}</dd>
       <dt>Description</dt><dd>${h(e.description || '—')}</dd>
+      <dt>Format</dt><dd>${h(e.format || '—')}</dd>
       <dt>Demandeur</dt><dd>${h(e.demandeur)}${e.creePar && e.creePar !== e.demandeur ? ` <span class="doux petit">(demande déposée par ${h(e.creePar)})</span>` : ''}</dd>
+      <dt>Unité</dt><dd>${(e.unites || []).length ? h(e.unites.join(' · ')) : '—'} <span class="doux petit">(automatique)</span></dd>
       <dt>Dates et heures</dt><dd>${plageDates(e)}, de ${heure(e.debut)} à ${heure(e.fin)}</dd>
       <dt>Lieu</dt><dd>${h(e.salles.map(nomSalle).join(', '))}</dd>
+      <dt>Sur le campus</dt><dd>${h(e.surCampus || 'Oui')} <span class="doux petit">(automatique)</span></dd>
+      <dt>Public cible</dt><dd>${(e.publicCible || []).length ? h(e.publicCible.join(' · ')) : '—'}</dd>
       <dt>Participants</dt><dd>${h(e.participants || '?')}</dd>
       <dt>Audiovisuel</dt><dd>${oui(e.besoinAV, liste(e.accompagnement))}${e.precisionsAV ? `<br><span class="petit">${h(e.precisionsAV)}</span>` : ''}</dd>
       <dt>Affichage</dt><dd>${oui(e.besoinAffichage, liste(e.typesAffichage))}${e.precisionsAffichage ? `<br><span class="petit">${h(e.precisionsAffichage)}</span>` : ''}</dd>

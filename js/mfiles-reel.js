@@ -21,7 +21,7 @@
     typesAffichage: 4552, precisionsAffichage: 4536, traiteur: 4501, bbq: 4447,
     alcool: 4537, permisAlcool: 4081, frais: 4439, direction: 4440, membreDirection: 4504, roleDirection: 4503,
     invites: 4492, listeInvites: 4451,
-    conseiller: 4463, fiche: 4465, autorise: 4448,
+    format: 3742, publicCible: 2857, surCampus: 3083, unites: 1023, conseiller: 4463, fiche: 4465, autorise: 4448,
   };
   const DEMANDE = { type: 359, classe: 1017 };
   const EMPLOYE = { type: 103, utilisateur: 1221 };
@@ -100,7 +100,8 @@
       typesAffichage: lookups(props, P.typesAffichage), precisionsAffichage: texte(props, P.precisionsAffichage),
       traiteur: texte(props, P.traiteur), bbq: ouiNon(props, P.bbq),
       membreDirection: lookups(props, P.membreDirection).join(', '), roleDirection: texte(props, P.roleDirection),
-      listeInvites: texte(props, P.listeInvites), conseiller: texte(props, P.conseiller),
+      listeInvites: texte(props, P.listeInvites), format: lookups(props, P.format).join(', '), publicCible: lookups(props, P.publicCible),
+      surCampus: ouiNon(props, P.surCampus), unites: lookups(props, P.unites), conseiller: texte(props, P.conseiller),
       statut: statutDe(idEtape, nomEtape), ficheApprouvee: ETATS.planifie.includes(idEtape),
       fiche: null, ficheMFiles: texte(props, P.fiche),
       delegue: null, verifications: {}, messages: [],
