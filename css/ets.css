@@ -263,3 +263,4 @@ dialog h2 { margin-bottom: .4em; }
 .pastille:disabled { opacity: .35; cursor: not-allowed; border-color: #ddd; color: #999; }
 .pastille--duree { min-width: 0; padding: 6px 14px; }
 .plage__resume { margin: 12px 0 0; padding: 10px 12px; background: #F5F5F5; border-radius: var(--rayon); font-size: .95rem; }
+.pastille--heure { min-width: 46px; padding: 6px 8px; }

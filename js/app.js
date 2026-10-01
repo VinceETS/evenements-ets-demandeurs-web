@@ -31,7 +31,7 @@
   const enHeure = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
   const duree = (m) => m >= 60 ? Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : '') : m + ' min';
   const LIMITE = 23 * 60;
-  const PERIODES = [['Matin', 7 * 60, 12 * 60], ['Après-midi', 12 * 60, 17 * 60], ['Soir', 17 * 60, 22 * 60 + 30]];
+  const HEURES_DEBUT = Array.from({ length: 16 }, (_, i) => i + 7); // 7 h à 22 h
   const DUREES = [30, 60, 90, 120, 180, 240, 480];
 
   function champHoraire(debut, fin) {
@@ -42,12 +42,10 @@
     durees.sort((x, y) => x - y);
     return `<div class="champ plage">
       <span class="etiquette" id="lbl-debut">Heure de début <span class="requis">*</span></span>
-      ${PERIODES.map(([nom, de, a]) => {
-        const pastilles = [];
-        for (let m = de; m < a; m += 30) pastilles.push(`<button type="button" class="pastille" data-debut="${enHeure(m)}" aria-pressed="${m === d}">${heure(enHeure(m))}</button>`);
-        if (d !== null && d >= de && d < a && d % 30) pastilles.push(`<button type="button" class="pastille" data-debut="${enHeure(d)}" aria-pressed="true">${heure(enHeure(d))}</button>`);
-        return `<div class="plage__periode"><span class="plage__nom">${nom}</span><div class="pastilles" role="group" aria-labelledby="lbl-debut">${pastilles.join('')}</div></div>`;
-      }).join('')}
+      <div class="plage__periode"><span class="plage__nom">Heure</span><div class="pastilles" role="group" aria-labelledby="lbl-debut">
+        ${HEURES_DEBUT.map((hh) => `<button type="button" class="pastille pastille--heure" data-heure="${hh}" aria-pressed="${d !== null && Math.floor(d / 60) === hh}">${hh} h</button>`).join('')}</div></div>
+      <div class="plage__periode"><span class="plage__nom">Minutes</span><div class="pastilles" role="group" aria-labelledby="lbl-debut">
+        ${[0, 15, 30, 45].map((mm) => `<button type="button" class="pastille pastille--heure" data-minutes="${mm}" aria-pressed="${d !== null && d % 60 === mm}">:${String(mm).padStart(2, '0')}</button>`).join('')}</div></div>
       <span class="etiquette" id="lbl-duree" style="margin-top:14px">Durée <span class="requis">*</span></span>
       <div class="pastilles" role="group" aria-labelledby="lbl-duree">
         ${durees.map((m) => `<button type="button" class="pastille pastille--duree" data-duree="${m}" aria-pressed="${m === dur}">${m === 240 ? 'Demi-journée (4 h)' : m === 480 ? 'Journée (8 h)' : duree(m)}</button>`).join('')}
@@ -62,7 +60,8 @@
     let dur = f.debut.value && f.fin.value ? enMin(f.fin.value) - enMin(f.debut.value) : null;
     const maj = () => {
       const d = f.debut.value ? enMin(f.debut.value) : null;
-      zone.querySelectorAll('[data-debut]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.debut === f.debut.value));
+      zone.querySelectorAll('[data-heure]').forEach((b) => b.setAttribute('aria-pressed', d !== null && Math.floor(d / 60) === +b.dataset.heure));
+      zone.querySelectorAll('[data-minutes]').forEach((b) => b.setAttribute('aria-pressed', d !== null && d % 60 === +b.dataset.minutes));
       zone.querySelectorAll('[data-duree]').forEach((b) => {
         const m = +b.dataset.duree;
         b.setAttribute('aria-pressed', m === dur);
@@ -70,7 +69,7 @@
       });
       if (d !== null && dur && d + dur > LIMITE) dur = null;
       f.fin.value = d !== null && dur ? enHeure(d + dur) : '';
-      zone.querySelector('.plage__resume').innerHTML = d === null ? 'Choisissez l’heure de début.'
+      zone.querySelector('.plage__resume').innerHTML = d === null ? 'Choisissez l’heure de début : l’heure, puis les minutes.'
         : !dur ? `Début à <b>${heure(f.debut.value)}</b> — choisissez la durée.`
         : `De <b>${heure(f.debut.value)}</b> à <b>${heure(f.fin.value)}</b> (${duree(dur)})`;
       f.debut.classList.remove('invalide'); f.fin.classList.remove('invalide');
@@ -78,7 +77,9 @@
     };
     zone.addEventListener('click', (ev) => {
       const b = ev.target.closest('button'); if (!b) return;
-      if (b.dataset.debut) f.debut.value = b.dataset.debut;
+      const actuel = f.debut.value ? enMin(f.debut.value) : null;
+      if (b.dataset.heure) f.debut.value = enHeure(+b.dataset.heure * 60 + (actuel === null ? 0 : actuel % 60));
+      if (b.dataset.minutes) f.debut.value = enHeure((actuel === null ? 9 * 60 : Math.floor(actuel / 60) * 60) + +b.dataset.minutes);
       if (b.dataset.duree) dur = +b.dataset.duree;
       maj();
     });
