@@ -76,30 +76,34 @@
   // La proposition que la Régie ferait à partir de la demande.
   function genererFiche(d) {
     const n = Number(d.participants) || 0;
-    const b = d.besoins || {};
-    const av = ['Projecteur et écran', 'Ordinateur de régie'];
-    if (n > 40 || b.micro) av.push(n > 100 ? 'Sonorisation et 2 micros sans fil' : '1 micro sans fil');
-    if (b.diffusion) av.push('Captation et diffusion en ligne');
     const acc = d.accompagnement || [];
-    if (acc.includes(ACCOMPAGNEMENTS[2])) av.push('Technicien audiovisuel présent pendant tout l\u2019événement');
-    else if (acc.includes(ACCOMPAGNEMENTS[0])) av.push('Technicien audiovisuel au démarrage (15 min)');
-    if (acc.includes(LIBRE_SERVICE)) av.splice(0, av.length, 'Salle en libre service : équipement de la salle seulement');
-    if (b.lutrin) av.push('Lutrin avec micro');
-    const materiel = [];
-    if (d.amenagement && /Banquet/.test(d.amenagement)) materiel.push(Math.ceil(n / 8) + ' tables rondes de 8');
-    if (d.amenagement && /Cocktail/.test(d.amenagement)) materiel.push(Math.ceil(n / 15) + ' tables hautes');
-    materiel.push('Table d’accueil avec 2 chaises');
-    if (b.traiteur) materiel.push('2 tables nappées pour le traiteur');
-    if (b.accueil) materiel.push('Chevalet d’affichage à l’entrée');
-    const services = ['Régie des événements', 'SGAI (aménagement)', 'Soutien audiovisuel'];
-    if (n > 100 || b.dignitaires || b.alcool) services.push('Sécurité');
-    if (b.dignitaires) services.push('Direction générale');
-    if (b.dignitaireEtranger) services.push('SRI');
-    if (b.traiteur) services.push('Entretien');
+    let av = [];
+    if (d.besoinAV === 'Oui') {
+      av = ['Projecteur et écran', 'Ordinateur de régie'];
+      if (n > 40) av.push(n > 100 ? 'Sonorisation et 2 micros sans fil' : '1 micro sans fil');
+      if (acc.includes(ACCOMPAGNEMENTS[2])) av.push('Technicien audiovisuel présent pendant tout l’événement');
+      else if (acc.includes(ACCOMPAGNEMENTS[0])) av.push('Technicien audiovisuel au démarrage (15 min)');
+      if (acc.includes(ACCOMPAGNEMENTS[1])) av.push('Montage particulier : voir les précisions de la demande');
+      if (acc.includes(LIBRE_SERVICE)) av = ['Salle en libre service : équipement de la salle seulement'];
+    } else av = ['Aucun besoin audiovisuel'];
+    const materiel = ['Table d’accueil avec 2 chaises'];
+    if (d.nourriture === 'Oui') materiel.push('2 tables nappées pour le traiteur');
+    if (d.bbq === 'Oui') materiel.push('Emplacement extérieur pour le BBQ');
+    if (d.besoinAffichage === 'Oui') (d.typesAffichage || []).forEach((t) => materiel.push('Affichage : ' + t.toLowerCase()));
+    if (d.direction === 'Oui' || d.invites === 'Oui') materiel.push('Lutrin et sièges réservés à l’avant');
+    const services = ['Régie des événements', 'SGAI (aménagement)'];
+    if (d.besoinAV === 'Oui' && !acc.includes(LIBRE_SERVICE)) services.push('Soutien audiovisuel');
+    if (n > 100 || d.invites === 'Oui' || d.alcool === 'Oui') services.push('Sécurité');
+    if (d.direction === 'Oui') services.push('Direction générale');
+    if (d.invites === 'Oui' && /étranger/i.test(d.listeInvites || '')) services.push('SRI');
+    if (d.nourriture === 'Oui') services.push('Entretien');
+    if (d.bbq === 'Oui') services.push('Permis de BBQ');
+    if (d.permisAlcool === 'Oui') services.push('Permis d’alcool');
+    if (d.frais === 'Oui') services.push('UBR (frais d’inscription)');
     return {
       version: (d.fiche ? d.fiche.version : 0) + 1,
       date: maintenant(),
-      amenagement: d.amenagement && !/déterminer/.test(d.amenagement) ? d.amenagement : (n > 60 ? 'Théâtre' : 'Salle de classe'),
+      amenagement: n > 60 ? 'Théâtre' : 'Salle de classe',
       capacitePrevue: n,
       montage: 'Montage 1 h avant, démontage 1 h après',
       audiovisuel: av,
@@ -107,7 +111,7 @@
       services,
       indications: [
         'Présence du demandeur ou de la personne déléguée requise pendant l’événement.',
-        b.alcool ? 'Permis d’alcool requis : fournir la copie à la Régie au plus tard 10 jours avant.' : 'Aucun service d’alcool prévu.',
+        d.permisAlcool === 'Oui' ? 'Permis d’alcool requis : fournir la copie à la Régie au plus tard 10 jours avant.' : d.alcool === 'Oui' ? 'Alcool sans permis : à confirmer avec la Régie.' : 'Aucun service d’alcool prévu.',
         'Accès au quai de livraison sur demande préalable.',
       ],
     };
@@ -119,48 +123,55 @@
     const moi = PROFILS[0];
     const base = (o) => Object.assign({
       demandeur: moi.nom, demandeurCourriel: moi.courriel, creePar: moi.nom,
-      salles: [], sallesSupplementaires: '', amenagement: '', type: 'Conférence',
-      besoins: {}, precisions: '', budget: '', delegue: null, verifications: {}, messages: [], historique: [],
+      pourAutrui: false, salles: [], accompagnement: [], typesAffichage: [],
+      besoinAV: 'Non', besoinAffichage: 'Non', nourriture: 'Non', alcool: 'Non', frais: 'Non', direction: 'Non', invites: 'Non',
+      delegue: null, verifications: {}, messages: [], historique: [],
     }, o);
 
     const e = [
       base({
         id: 'EVT-2026-0412', titre: 'Colloque en IA appliquée au génie', statut: 'fiche',
-        date: dansJours(34), debut: '08:30', fin: '16:30', salles: ['A-1600'], type: 'Colloque',
+        date: dansJours(34), debut: '08:30', fin: '16:30', salles: ['A-1600'], dateFin: dansJours(35),
         description: 'Journée de conférences et de tables rondes sur l’IA en génie, ouverte aux partenaires industriels.',
-        public: 'Chercheurs, étudiants aux cycles supérieurs, partenaires industriels', participants: 150,
-        amenagement: 'Théâtre', accompagnement: ['Présence complète durant l\u2019événement'], besoins: { micro: true, diffusion: true, traiteur: true, accueil: true, lutrin: true },
-        budget: 'Fonds de la chaire de recherche', conseiller: 'Marie-Ève Gagnon',
+        participants: 150,
+        besoinAV: 'Oui', precisionsAV: 'Panel de 5 personnes, diffusion en ligne.', accompagnement: ['Présence complète durant l\u2019événement'],
+        besoinAffichage: 'Oui', typesAffichage: ['Écrans numériques', 'Signalisation directionnelle'],
+        nourriture: 'Oui', traiteur: 'Service alimentaire de l\u2019ÉTS', bbq: 'Non', frais: 'Oui',
+        direction: 'Oui', membreDirection: 'Philippe Côté', roleDirection: 'Mot de bienvenue', conseiller: 'Marie-Ève Gagnon',
       }),
       base({
         id: 'EVT-2026-0398', titre: 'Midi-conférence : génie durable', statut: 'planifie',
-        date: dansJours(8), debut: '12:00', fin: '13:15', salles: ['B-1204'], type: 'Conférence',
+        date: dansJours(8), debut: '12:00', fin: '13:15', salles: ['B-1204'],
         description: 'Présentation d’un projet étudiant suivie d’une période de questions.',
-        public: 'Communauté ÉTS', participants: 35, amenagement: 'Salle de classe', accompagnement: ['Aide au démarrage'], besoins: { traiteur: true },
+        participants: 35, besoinAV: 'Oui', accompagnement: ['Aide au démarrage'],
+        nourriture: 'Oui', traiteur: 'Service alimentaire de l\u2019ÉTS', bbq: 'Non',
         conseiller: 'Marie-Ève Gagnon',
       }),
       base({
         id: 'EVT-2026-0421', titre: 'Remise des bourses d’excellence', statut: 'revision',
-        date: dansJours(52), debut: '17:00', fin: '19:30', salles: ['E-ATR'], type: 'Cérémonie',
+        date: dansJours(52), debut: '17:00', fin: '19:30', salles: ['E-ATR'],
         description: 'Cérémonie de remise des bourses suivie d’un cocktail.',
-        public: 'Boursiers, familles, donateurs', participants: 220, amenagement: 'Cocktail (debout)', accompagnement: ['Besoins ou montage particuliers', 'Présence complète durant l\u2019événement'],
-        besoins: { micro: true, lutrin: true, traiteur: true, alcool: true, traiteurExterne: true, dignitaires: true, photo: true },
+        participants: 220, besoinAV: 'Oui', accompagnement: ['Besoins ou montage particuliers', 'Présence complète durant l\u2019événement'],
+        nourriture: 'Oui', traiteur: 'Traiteur externe', bbq: 'Non', alcool: 'Oui', permisAlcool: 'Oui',
+        direction: 'Oui', membreDirection: 'Sophie Lavoie', roleDirection: 'Remise de prix',
+        invites: 'Oui', listeInvites: 'Représentante de la Fondation de l\u2019ÉTS\nConsul général de France (dignitaire étranger)',
         conseiller: 'Karim Benali',
       }),
       base({
         id: 'EVT-2026-0433', titre: 'Atelier : rédiger un CV technique', statut: 'attente',
-        date: dansJours(21), debut: '14:00', fin: '16:00', salles: ['D-5010'], type: 'Atelier / formation',
-        description: 'Atelier pratique animé par le Service de l’emploi.', public: 'Étudiants de 1er cycle', participants: 45,
-        amenagement: 'Salle de classe', accompagnement: ['Salle en libre service (aucun accompagnement requis)'],
+        date: dansJours(21), debut: '14:00', fin: '16:00', salles: ['D-5010'],
+        description: 'Atelier pratique animé par le Service de l’emploi.', participants: 45,
+        besoinAV: 'Oui', accompagnement: ['Salle en libre service (aucun accompagnement requis)'],
       }),
       base({
         id: 'EVT-2026-0440', titre: 'Réunion du comité de programme', statut: 'salle',
-        date: dansJours(15), debut: '09:00', fin: '11:00', salles: ['B-0520'], description: '', public: '', participants: '',
+        date: dansJours(15), debut: '09:00', fin: '11:00', salles: ['B-0520'], description: '', participants: '',
+        besoinAV: '', besoinAffichage: '', nourriture: '', alcool: '', frais: '', direction: '', invites: '', pourAutrui: undefined,
       }),
       base({
         id: 'EVT-2026-0377', titre: 'Lancement de l’ouvrage collectif', statut: 'annule',
-        date: dansJours(4), debut: '16:00', fin: '18:00', salles: ['A-1150'], type: 'Lancement',
-        description: 'Lancement annulé : l’éditeur a reporté la parution.', public: 'Communauté ÉTS', participants: 80,
+        date: dansJours(4), debut: '16:00', fin: '18:00', salles: ['A-1150'],
+        description: 'Lancement annulé : l’éditeur a reporté la parution.', participants: 80,
       }),
     ];
 
@@ -222,8 +233,7 @@
         const e = {
           id, titre, statut: 'salle', date, debut, fin, salles: [salle], participants,
           demandeur: auNomDe || u.nom, demandeurCourriel: '', creePar: u.nom,
-          description: '', public: '', type: 'Conférence', amenagement: '', besoins: {}, precisions: '', budget: '',
-          sallesSupplementaires: '', delegue: null, verifications: {}, messages: [], historique: [],
+          description: '', pourAutrui: Boolean(auNomDe), accompagnement: [], typesAffichage: [], delegue: null, verifications: {}, messages: [], historique: [],
         };
         journal(e, 'Réservation déposée dans Prélude — accusé de réception envoyé par courriel');
         etat.evenements.push(e); sauver();

@@ -397,12 +397,31 @@
   const flash = () => { const x = sessionFlash; sessionFlash = ''; return x; };
 
   // --- Demande d'événement (création et modification) --------------------
+  //
+  // Les champs suivent le formulaire M-Files « Demande d'événement », dans son
+  // ordre. Chaque question oui/non est obligatoire, comme les booléens de
+  // M-Files, et ouvre ses sous-champs quand on répond oui.
 
-  const BESOINS = [
-    ['Audiovisuel', [['micro', 'Micros'], ['lutrin', 'Lutrin'], ['diffusion', 'Captation ou diffusion en ligne'], ['photo', 'Photographe']]],
-    ['Logistique', [['accueil', 'Table d’accueil et affichage'], ['traiteur', 'Service traiteur'], ['traiteurExterne', 'Traiteur externe'], ['alcool', 'Service d’alcool']]],
-    ['Contraintes', [['dignitaires', 'Présence de dignitaires'], ['dignitaireEtranger', 'Dignitaire étranger (SRI)'], ['accessibilite', 'Besoins d’accessibilité'], ['promotion', 'Promotion de l’événement']]],
-  ];
+  // Valeurs d'exemple : les vraies listes M-Files n'ont pas encore été lues.
+  const TYPES_AFFICHAGE = ['Affiches', 'Écrans numériques', 'Signalisation directionnelle', 'Bannière ou kakémono'];
+  const TRAITEURS = ['Service alimentaire de l’ÉTS', 'Traiteur externe'];
+  const ROLES_DIRECTION = ['Allocution', 'Mot de bienvenue', 'Remise de prix', 'Présence seulement'];
+
+  const choix = (nom, valeur, options) => `<div class="pastilles" role="radiogroup">${options.map((o) =>
+    `<label class="pastille pastille--radio"><input type="radio" name="${nom}" value="${h(o)}" ${o === valeur ? 'checked' : ''}> ${h(o)}</label>`).join('')}</div>`;
+
+  // Une question oui/non et ce qu'elle ouvre.
+  function question(nom, libelle, valeur, siOui, aide) {
+    return `<fieldset class="question" data-question="${nom}">
+      <legend class="etiquette">${libelle} <span class="requis">*</span></legend>
+      ${aide ? `<p class="aide">${aide}</p>` : ''}
+      ${choix(nom, valeur, ['Oui', 'Non'])}
+      ${siOui ? `<div class="question__suite" ${valeur === 'Oui' ? '' : 'hidden'}>${siOui}</div>` : ''}
+    </fieldset>`;
+  }
+
+  const lire = (f, nom) => (f.querySelector(`[name="${nom}"]:checked`) || {}).value || '';
+  const cocher = (f, attr) => [...f.querySelectorAll(`[${attr}]:checked`)].map((c) => c.getAttribute(attr));
 
   async function pageDemande(id) {
     const e = await S.MFiles.demande(id);
@@ -415,7 +434,9 @@
       return;
     }
     const v = (k) => h(e[k] || '');
-    const bs = e.besoins || {};
+    const employes = await S.Identite.annuaire('');
+    const pourAutrui = e.pourAutrui || (e.demandeur && e.demandeur !== utilisateur.nom) ? 'Oui' : e.pourAutrui === false || e.demandeur ? 'Non' : '';
+
     rendre(`
       <div class="fil"><a href="#/">Mes événements</a> › ${creation ? 'Nouvel événement' : `<a href="#/evenement/${e.id}">${h(e.titre)}</a> › Modifier`}</div>
       <h1>${creation ? 'Nouvel événement' : 'Modifier la demande'}</h1>
@@ -423,62 +444,74 @@
       ${flash()}
       ${!creation && !regles.libre ? `<div class="avis avis--alerte"><strong>La fiche événement est déjà approuvée</strong>Votre modification sera envoyée à la Régie, qui révisera la fiche. Vous devrez approuver la nouvelle version. Modifications possibles jusqu’à 5 jours avant l’événement.</div>` : ''}
       <form class="carte" id="f-demande" novalidate>
-        <p class="doux petit" style="margin-top:0">Numéro ${h(e.id)} · Les champs marqués <span class="requis">*</span> sont obligatoires.</p>
+        <p class="doux petit" style="margin-top:0">Numéro ${h(e.id)} · Tous les champs marqués <span class="requis">*</span> sont obligatoires.</p>
 
         <h2>L’événement</h2>
         <div class="champ"><label for="titre">Titre de l’événement <span class="requis">*</span></label><input type="text" id="titre" value="${v('titre')}"></div>
-        <div class="rangee">
-          <div class="champ"><label for="type">Type d’activité</label><select id="type">${S.TYPES.map((t) => `<option ${t === e.type ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
-          <div class="champ"><label for="demandeur">Demandeur <span class="requis">*</span></label><input type="text" id="demandeur" value="${v('demandeur')}" ${utilisateur.role === 'soutien' ? '' : 'readonly'}></div>
-        </div>
         <div class="champ"><label for="description">Description de l’événement <span class="requis">*</span></label>
           <p class="aide">Objectif, déroulement, concept ou thématique : ce qui aide la Régie à vous proposer la bonne fiche.</p>
           <textarea id="description">${v('description')}</textarea></div>
+        ${question('pourAutrui', 'Demande effectuée pour une autre personne ?', pourAutrui,
+          `<div class="champ"><label for="demandeur">Demandeur <span class="requis">*</span></label>
+            <p class="aide">Choisissez la personne dans la liste des employés.</p>
+            <input type="text" id="demandeur" list="employes" autocomplete="off" value="${pourAutrui === 'Oui' ? v('demandeur') : ''}">
+            <datalist id="employes">${employes.map((n) => `<option value="${h(n)}">`).join('')}</datalist></div>`,
+          `Sinon, vous êtes le demandeur : <b>${h(utilisateur.nom)}</b>.`)}
 
         <div class="section-form">
-          <h2>Lieu et horaire</h2>
+          <h2>Date et heures</h2>
+          <div class="champ"><span class="etiquette">Salle réservée</span>${h(e.salles.map(nomSalle).join(', '))}</div>
           <div class="rangee">
-            <div class="champ"><span class="etiquette">Salle réservée</span>${h(e.salles.map(nomSalle).join(', '))}</div>
-            <div class="champ"><label for="date">Date <span class="requis">*</span></label><input type="date" id="date" value="${v('date')}" ${creation ? 'readonly' : ''}></div>
+            <div class="champ"><label for="date">Date de début <span class="requis">*</span></label><input type="date" id="date" value="${v('date')}" ${creation ? 'readonly' : ''}></div>
+            <div class="champ"><label for="dateFin">Date de fin <span class="requis">*</span></label><input type="date" id="dateFin" min="${v('date')}" value="${h(e.dateFin || e.date)}"></div>
           </div>
           ${champHoraire(e.debut, e.fin)}
-          <p class="aide petit doux" style="margin-top:-8px">Sans le montage ni le démontage. Pour changer de salle ou de date, écrivez-le dans les précisions : la Régie ajuste Prélude.</p>
-          <div class="champ"><label for="sallesSupplementaires">Salles supplémentaires</label>
-            <p class="aide">Si l’événement demande d’autres salles (ateliers, vestiaire, salle des conférenciers), inscrivez-les ici : la Régie les ajoutera dans Prélude.</p>
-            <input type="text" id="sallesSupplementaires" value="${v('sallesSupplementaires')}"></div>
-          <div class="champ"><label for="amenagement">Aménagement souhaité</label><select id="amenagement"><option value="">—</option>${S.AMENAGEMENTS.map((t) => `<option ${t === e.amenagement ? 'selected' : ''}>${t}</option>`).join('')}</select></div>
+          <p class="aide petit doux" style="margin-top:-8px">Sans le montage ni le démontage. Sur plusieurs jours, ces heures valent pour chaque journée.</p>
+          <div id="avis-jours"></div>
         </div>
 
         <div class="section-form">
           <h2>Public</h2>
-          <div class="rangee">
-            <div class="champ" style="grid-column:span 2"><label for="public">Public cible <span class="requis">*</span></label><input type="text" id="public" value="${v('public')}" placeholder="Ex. étudiants de 1er cycle, partenaires industriels"></div>
-            <div class="champ"><label for="participants">Nombre de participants <span class="requis">*</span></label><input type="number" min="1" id="participants" value="${v('participants')}"></div>
-          </div>
+          <div class="champ" style="max-width:240px"><label for="participants">Nombre de participants attendus <span class="requis">*</span></label><input type="number" min="1" id="participants" value="${v('participants')}"></div>
         </div>
 
         <div class="section-form">
-          <h2 id="lbl-accompagnement">Type d\u2019accompagnement en audiovisuel <span class="requis">*</span></h2>
-          <p class="aide">Le soutien audiovisuel dont vous aurez besoin. Cochez tout ce qui s\u2019applique.</p>
-          <fieldset class="accompagnement" aria-labelledby="lbl-accompagnement">
-            ${S.ACCOMPAGNEMENTS.map((a) => `<label class="coche"><input type="checkbox" data-accompagnement="${h(a)}" ${(e.accompagnement || []).includes(a) ? 'checked' : ''}> ${h(a)}</label>`).join('')}
-          </fieldset>
+          <h2>Besoins</h2>
+          ${question('besoinAV', 'Besoins en audiovisuel ?', e.besoinAV, `
+            <div class="champ"><label for="precisionsAV">Précisions</label><textarea id="precisionsAV" placeholder="Ex. deux micros sans fil pour le panel, présentation depuis un portable">${v('precisionsAV')}</textarea></div>
+            <fieldset class="accompagnement"><legend class="etiquette">Type d’accompagnement en audiovisuel <span class="requis">*</span></legend>
+              <p class="aide">Cochez tout ce qui s’applique.</p>
+              ${S.ACCOMPAGNEMENTS.map((a) => `<label class="coche"><input type="checkbox" data-accompagnement="${h(a)}" ${(e.accompagnement || []).includes(a) ? 'checked' : ''}> ${h(a)}</label>`).join('')}
+            </fieldset>`)}
+          ${question('besoinAffichage', 'Besoins en affichage ?', e.besoinAffichage, `
+            <fieldset class="groupe-cases"><legend class="etiquette">Type de besoin <span class="requis">*</span></legend>
+              <p class="aide">Valeurs d’exemple, en attendant la liste de M-Files.</p>
+              <div class="cases">${TYPES_AFFICHAGE.map((t) => `<label class="coche"><input type="checkbox" data-affichage="${h(t)}" ${(e.typesAffichage || []).includes(t) ? 'checked' : ''}> ${h(t)}</label>`).join('')}</div>
+            </fieldset>
+            <div class="champ"><label for="precisionsAffichage">Précisions</label><textarea id="precisionsAffichage">${v('precisionsAffichage')}</textarea></div>`)}
+          ${question('nourriture', 'Service de nourriture ?', e.nourriture, `
+            <fieldset><legend class="etiquette">Traiteur <span class="requis">*</span></legend>${choix('traiteur', e.traiteur, TRAITEURS)}</fieldset>
+            <fieldset><legend class="etiquette">BBQ ? <span class="requis">*</span></legend>${choix('bbq', e.bbq, ['Oui', 'Non'])}</fieldset>`)}
+          ${question('alcool', 'Consommation d’alcool ?', e.alcool, `
+            <fieldset><legend class="etiquette">Permis d’alcool requis ? <span class="requis">*</span></legend>${choix('permisAlcool', e.permisAlcool, ['Oui', 'Non'])}</fieldset>
+            <div id="avis-alcool"></div>`)}
+          ${question('frais', 'Frais d’inscription ?', e.frais)}
         </div>
 
         <div class="section-form">
-          <h2>Besoins particuliers <span class="requis">*</span></h2>
-          <p class="aide">Cochez ce qui s’applique, puis précisez. Si vous n’avez aucun besoin particulier, indiquez-le dans les précisions.</p>
-          ${BESOINS.map(([g, items]) => `<fieldset><legend class="etiquette">${g}</legend><div class="cases">
-            ${items.map(([k, l]) => `<label class="coche"><input type="checkbox" data-besoin="${k}" ${bs[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div></fieldset>`).join('')}
-          <div id="avis-alcool"></div>
-          <div class="champ"><label for="precisions">Précisions</label><textarea id="precisions" placeholder="Ex. deux micros sans fil pour le panel, traiteur Chez Untel, accès pour fauteuil roulant à la scène">${v('precisions')}</textarea></div>
+          <h2>Présences particulières</h2>
+          ${question('direction', 'Présence d’un membre de la direction ?', e.direction, `
+            <div class="rangee">
+              <div class="champ"><label for="membreDirection">Membre de la direction <span class="requis">*</span></label><input type="text" id="membreDirection" list="employes" autocomplete="off" value="${v('membreDirection')}"></div>
+              <div class="champ"><label for="roleDirection">Son rôle <span class="requis">*</span></label><select id="roleDirection"><option value="">Choisir…</option>${ROLES_DIRECTION.map((r) => `<option ${r === e.roleDirection ? 'selected' : ''}>${r}</option>`).join('')}</select></div>
+            </div>`)}
+          ${question('invites', 'Présence d’invités de marque ?', e.invites, `
+            <div class="champ"><label for="listeInvites">Invités de marque et dignitaires <span class="requis">*</span></label>
+              <p class="aide">Un par ligne : nom, fonction, organisation. Précisez s’il s’agit d’un dignitaire étranger.</p>
+              <textarea id="listeInvites">${v('listeInvites')}</textarea></div>`)}
         </div>
 
-        <details class="facultatif" ${e.budget ? 'open' : ''}><summary>Budget et financement (facultatif)</summary>
-          <div class="champ"><label for="budget">Paramètres budgétaires ou source de financement</label><input type="text" id="budget" value="${v('budget')}" placeholder="Ex. fonds de la chaire, unité administrative, commandite"></div>
-        </details>
-
-        ${!creation && !regles.libre ? `<div class="champ"><label for="motifModification">Qu’est-ce qui change ? <span class="requis">*</span></label><textarea id="motifModification" placeholder="Résumez la modification pour la Régie"></textarea></div>` : ''}
+        ${!creation && !regles.libre ? `<div class="section-form"><div class="champ"><label for="motifModification">Qu’est-ce qui change ? <span class="requis">*</span></label><textarea id="motifModification" placeholder="Résumez la modification pour la Régie"></textarea></div></div>` : ''}
 
         <div class="actions actions--fin">
           <a class="bouton bouton--neutre" href="#/${creation ? '' : 'evenement/' + e.id}">${creation ? 'Terminer plus tard' : 'Annuler'}</a>
@@ -488,61 +521,109 @@
 
     const f = document.getElementById('f-demande');
     lierHeures(f);
+
+    // Oui ouvre les sous-champs, Non les referme.
+    f.querySelectorAll('.question').forEach((q) => q.addEventListener('change', (ev) => {
+      if (ev.target.name !== q.dataset.question) return;
+      const suite = q.querySelector(':scope > .question__suite');
+      if (suite) suite.hidden = ev.target.value !== 'Oui';
+      q.classList.remove('invalide');
+    }));
     // « Libre service » exclut les autres choix, et inversement.
     f.querySelectorAll('[data-accompagnement]').forEach((c) => c.addEventListener('change', () => {
       if (!c.checked) return;
       const libre = c.dataset.accompagnement === S.LIBRE_SERVICE;
       f.querySelectorAll('[data-accompagnement]').forEach((o) => { if (o !== c && (libre || o.dataset.accompagnement === S.LIBRE_SERVICE)) o.checked = false; });
-      f.querySelector('.accompagnement').classList.remove('invalide');
     }));
-    const alcool = () => {
-      const a = f.querySelector('[data-besoin=alcool]').checked;
+    const avis = () => {
       const j = S.joursAvant(f.date.value);
-      document.getElementById('avis-alcool').innerHTML = a
-        ? `<div class="avis ${j < 30 ? 'avis--action' : 'avis--alerte'}"><strong>${j < 30 ? 'Délai insuffisant pour le permis d’alcool' : 'Permis d’alcool requis'}</strong>
-            Avec un traiteur externe, il faut au moins 30 jours pour obtenir le permis. ${j < 30 ? `Votre événement a lieu ${dans(j)} : la Régie communiquera avec vous.` : ''}</div>` : '';
+      const permis = lire(f, 'alcool') === 'Oui' && lire(f, 'permisAlcool') === 'Oui';
+      document.getElementById('avis-alcool').innerHTML = permis
+        ? `<div class="avis ${j < 30 ? 'avis--action' : 'avis--alerte'}"><strong>${j < 30 ? 'Délai insuffisant pour le permis d’alcool' : 'Une demande de permis d’alcool sera liée à votre demande'}</strong>
+            Il faut au moins 30 jours pour obtenir le permis. ${j < 30 ? `Votre événement a lieu ${dans(j)} : la Régie communiquera avec vous.` : ''}</div>` : '';
+      if (f.dateFin.value < f.date.value) f.dateFin.value = f.date.value;
+      f.dateFin.min = f.date.value;
+      const jours = Math.round((dateObj(f.dateFin.value) - dateObj(f.date.value)) / 86400000) + 1;
+      document.getElementById('avis-jours').innerHTML = jours > 1
+        ? `<div class="avis"><strong>Événement sur ${jours} jours</strong>La salle réservée couvre le premier jour : la Régie ajoutera les autres journées dans Prélude.</div>` : '';
     };
-    f.addEventListener('change', alcool); alcool();
+    f.addEventListener('change', avis); avis();
 
     f.onsubmit = async (ev) => {
       ev.preventDefault();
-      const champs = { besoins: {} };
-      ['titre', 'type', 'demandeur', 'description', 'date', 'debut', 'fin', 'sallesSupplementaires', 'amenagement', 'public', 'participants', 'precisions', 'budget'].forEach((k) => champs[k] = f[k].value.trim());
-      f.querySelectorAll('[data-besoin]').forEach((c) => { if (c.checked) champs.besoins[c.dataset.besoin] = true; });
-      champs.accompagnement = [...f.querySelectorAll('[data-accompagnement]:checked')].map((c) => c.dataset.accompagnement);
-      const requis = ['titre', 'demandeur', 'description', 'date', 'debut', 'fin', 'public', 'participants'];
-      if (f.motifModification) { requis.push('motifModification'); champs.motifModification = f.motifModification.value.trim(); }
-      let premier = null;
-      requis.forEach((k) => { const vide = !(champs[k] || '').length; f[k].classList.toggle('invalide', vide); f[k].setAttribute('aria-invalid', vide); if (vide && !premier) premier = f[k]; });
-      const zoneAcc = f.querySelector('.accompagnement');
-      zoneAcc.classList.toggle('invalide', !champs.accompagnement.length);
-      if (!champs.accompagnement.length && !premier) { premier = zoneAcc.querySelector('input'); toast('Choisissez au moins un type d\u2019accompagnement.'); }
-      const aucunBesoin = !Object.keys(champs.besoins).length && !champs.precisions;
-      if (aucunBesoin) { f.precisions.classList.add('invalide'); premier = premier || f.precisions; }
-      if (premier) { premier.focus(); if (zoneAcc.contains(premier)) return; toast(aucunBesoin && premier === f.precisions ? 'Indiquez vos besoins particuliers, ou « aucun » dans les précisions.' : 'Remplissez les champs obligatoires.'); return; }
-      if (champs.fin <= champs.debut) { f.fin.classList.add('invalide'); f.fin.focus(); toast('L’heure de fin doit suivre l’heure de début.'); return; }
-      if (creation) { pageVerification(e, champs); return; }
-      await S.MFiles.modifierDemande(e.id, champs);
+      const val = (k) => (f[k] ? f[k].value.trim() : '');
+      const c = {
+        titre: val('titre'), description: val('description'), date: val('date'), dateFin: val('dateFin'),
+        debut: val('debut'), fin: val('fin'), participants: val('participants'),
+        pourAutrui: lire(f, 'pourAutrui') === 'Oui',
+        besoinAV: lire(f, 'besoinAV'), precisionsAV: val('precisionsAV'), accompagnement: cocher(f, 'data-accompagnement'),
+        besoinAffichage: lire(f, 'besoinAffichage'), typesAffichage: cocher(f, 'data-affichage'), precisionsAffichage: val('precisionsAffichage'),
+        nourriture: lire(f, 'nourriture'), traiteur: lire(f, 'traiteur'), bbq: lire(f, 'bbq'),
+        alcool: lire(f, 'alcool'), permisAlcool: lire(f, 'permisAlcool'), frais: lire(f, 'frais'),
+        direction: lire(f, 'direction'), membreDirection: val('membreDirection'), roleDirection: val('roleDirection'),
+        invites: lire(f, 'invites'), listeInvites: val('listeInvites'),
+      };
+      c.demandeur = c.pourAutrui ? val('demandeur') : utilisateur.nom;
+      // Les sous-champs d'un « Non » ne sont pas gardés.
+      if (c.besoinAV !== 'Oui') { c.precisionsAV = ''; c.accompagnement = []; }
+      if (c.besoinAffichage !== 'Oui') { c.typesAffichage = []; c.precisionsAffichage = ''; }
+      if (c.nourriture !== 'Oui') { c.traiteur = ''; c.bbq = ''; }
+      if (c.alcool !== 'Oui') c.permisAlcool = '';
+      if (c.direction !== 'Oui') { c.membreDirection = ''; c.roleDirection = ''; }
+      if (c.invites !== 'Oui') c.listeInvites = '';
+
+      // Chaque manque : l'élément à marquer, et le message.
+      const manques = [];
+      const exiger = (ok, el, msg) => { if (el) el.classList.toggle('invalide', !ok); if (!ok) manques.push([el, msg]); };
+      const zone = (nom) => f.querySelector(`[data-question="${nom}"]`);
+      exiger(c.titre, f.titre, 'Le titre est obligatoire.');
+      exiger(c.description, f.description, 'La description est obligatoire.');
+      exiger(lire(f, 'pourAutrui'), zone('pourAutrui'), 'Indiquez si la demande est faite pour une autre personne.');
+      if (c.pourAutrui) exiger(employes.includes(c.demandeur), f.demandeur, 'Choisissez le demandeur dans la liste des employés.');
+      exiger(c.debut && c.fin, f.querySelector('.plage'), 'Choisissez l’heure de début et la durée.');
+      exiger(Number(c.participants) > 0, f.participants, 'Indiquez le nombre de participants.');
+      [['besoinAV', 'l’audiovisuel'], ['besoinAffichage', 'l’affichage'], ['nourriture', 'la nourriture'], ['alcool', 'l’alcool'],
+        ['frais', 'les frais d’inscription'], ['direction', 'la direction'], ['invites', 'les invités de marque']]
+        .forEach(([k, quoi]) => exiger(c[k], zone(k), `Répondez à la question sur ${quoi}.`));
+      if (c.besoinAV === 'Oui') exiger(c.accompagnement.length, f.querySelector('.accompagnement'), 'Choisissez au moins un type d’accompagnement.');
+      if (c.besoinAffichage === 'Oui') exiger(c.typesAffichage.length, f.querySelector('.groupe-cases'), 'Choisissez au moins un type d’affichage.');
+      if (c.nourriture === 'Oui') { exiger(c.traiteur, f.querySelector('[name=traiteur]').closest('fieldset'), 'Choisissez le traiteur.'); exiger(c.bbq, f.querySelector('[name=bbq]').closest('fieldset'), 'Indiquez s’il y a un BBQ.'); }
+      if (c.alcool === 'Oui') exiger(c.permisAlcool, f.querySelector('[name=permisAlcool]').closest('fieldset'), 'Indiquez si un permis d’alcool est requis.');
+      if (c.direction === 'Oui') { exiger(c.membreDirection, f.membreDirection, 'Nommez le membre de la direction.'); exiger(c.roleDirection, f.roleDirection, 'Choisissez son rôle.'); }
+      if (c.invites === 'Oui') exiger(c.listeInvites, f.listeInvites, 'Listez les invités de marque.');
+      if (f.motifModification) { c.motifModification = val('motifModification'); exiger(c.motifModification, f.motifModification, 'Résumez la modification pour la Régie.'); }
+      if (manques.length) {
+        const [el, msg] = manques[0];
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        toast(manques.length > 1 ? `${msg} (${manques.length} champs à compléter)` : msg);
+        return;
+      }
+      if (creation) { pageVerification(e, c); return; }
+      await S.MFiles.modifierDemande(e.id, c);
       toast(regles.libre ? 'Demande mise à jour.' : 'Modification envoyée à la Régie.');
       location.hash = `#/evenement/${e.id}`;
     };
   }
 
+  const plageDates = (e) => !e.dateFin || e.dateFin === e.date ? dateLongue(e.date) : `du ${dateLongue(e.date)} au ${dateLongue(e.dateFin)}`;
+
   function resumeDemande(e) {
-    const bs = Object.keys(e.besoins || {});
-    const libelles = Object.fromEntries(BESOINS.flatMap(([, it]) => it));
+    const oui = (rep, detail) => !rep ? '—' : rep === 'Non' ? 'Non' : 'Oui' + (detail ? ' — ' + detail : '');
+    const liste = (l) => (l || []).filter(Boolean).map(h).join(' · ');
     return `<div class="fiche"><dl>
       <dt>Titre</dt><dd>${h(e.titre)}</dd>
-      <dt>Type</dt><dd>${h(e.type)}</dd>
-      <dt>Demandeur</dt><dd>${h(e.demandeur)}${e.creePar && e.creePar !== e.demandeur ? ` <span class="doux petit">(déposée par ${h(e.creePar)})</span>` : ''}</dd>
-      <dt>Date et heures</dt><dd>${dateLongue(e.date)}, de ${heure(e.debut)} à ${heure(e.fin)}</dd>
-      <dt>Lieu</dt><dd>${h(e.salles.map(nomSalle).join(', '))}${e.sallesSupplementaires ? `<br><span class="petit">+ ${h(e.sallesSupplementaires)}</span>` : ''}</dd>
-      <dt>Aménagement</dt><dd>${h(e.amenagement || '—')}</dd>
-      <dt>Public cible</dt><dd>${h(e.public || '—')} · ${h(e.participants || '?')} participants</dd>
       <dt>Description</dt><dd>${h(e.description || '—')}</dd>
-      <dt>Accompagnement audiovisuel</dt><dd>${(e.accompagnement || []).length ? h(e.accompagnement.join(' · ')) : '—'}</dd>
-      <dt>Besoins particuliers</dt><dd>${bs.length ? `<div class="services">${bs.map((k) => `<span class="puce">${h(libelles[k] || k)}</span>`).join('')}</div>` : 'Aucun coché'}${e.precisions ? `<p class="petit" style="margin:6px 0 0">${h(e.precisions)}</p>` : ''}</dd>
-      <dt>Budget</dt><dd>${h(e.budget || '—')}</dd>
+      <dt>Demandeur</dt><dd>${h(e.demandeur)}${e.creePar && e.creePar !== e.demandeur ? ` <span class="doux petit">(demande déposée par ${h(e.creePar)})</span>` : ''}</dd>
+      <dt>Dates et heures</dt><dd>${plageDates(e)}, de ${heure(e.debut)} à ${heure(e.fin)}</dd>
+      <dt>Lieu</dt><dd>${h(e.salles.map(nomSalle).join(', '))}</dd>
+      <dt>Participants</dt><dd>${h(e.participants || '?')}</dd>
+      <dt>Audiovisuel</dt><dd>${oui(e.besoinAV, liste(e.accompagnement))}${e.precisionsAV ? `<br><span class="petit">${h(e.precisionsAV)}</span>` : ''}</dd>
+      <dt>Affichage</dt><dd>${oui(e.besoinAffichage, liste(e.typesAffichage))}${e.precisionsAffichage ? `<br><span class="petit">${h(e.precisionsAffichage)}</span>` : ''}</dd>
+      <dt>Nourriture</dt><dd>${oui(e.nourriture, liste([e.traiteur, e.bbq === 'Oui' ? 'BBQ' : '']))}</dd>
+      <dt>Alcool</dt><dd>${oui(e.alcool, e.permisAlcool === 'Oui' ? 'permis requis' : e.permisAlcool === 'Non' ? 'sans permis' : '')}</dd>
+      <dt>Frais d’inscription</dt><dd>${oui(e.frais)}</dd>
+      <dt>Membre de la direction</dt><dd>${oui(e.direction, liste([e.membreDirection, e.roleDirection]))}</dd>
+      <dt>Invités de marque</dt><dd>${oui(e.invites)}${e.listeInvites ? `<br><span class="petit" style="white-space:pre-line">${h(e.listeInvites)}</span>` : ''}</dd>
     </dl></div>`;
   }
 
@@ -596,7 +677,7 @@
       <div class="fil"><a href="#/">Mes événements</a> › ${h(e.titre)}</div>
       <div class="entete-page">
         <div><h1>${h(e.titre)}</h1>
-          <p class="doux" style="margin:4px 0 0">${h(e.id)} · ${dateLongue(e.date)} · ${heure(e.debut)} à ${heure(e.fin)} · ${dans(j)}</p></div>
+          <p class="doux" style="margin:4px 0 0">${h(e.id)} · ${plageDates(e)} · ${heure(e.debut)} à ${heure(e.fin)} · ${dans(j)}</p></div>
         ${statut(e)}
       </div>
       ${flash()}
@@ -751,9 +832,9 @@
       ${e.ficheApprouvee ? `<div class="avis avis--succes"><strong>Fiche approuvée</strong>C’est la source d’information officielle de l’événement pour tous les services.</div>` : ''}
       <div class="grille grille-2">
         <section class="carte fiche"><h2>Événement</h2><dl>
-          <dt>Date</dt><dd>${dateLongue(e.date)}</dd>
+          <dt>Date</dt><dd>${plageDates(e)}</dd>
           <dt>Heures</dt><dd>${heure(e.debut)} à ${heure(e.fin)}<br><span class="petit doux">${h(f.montage)}</span></dd>
-          <dt>Lieu</dt><dd>${h(e.salles.map(nomSalle).join(', '))}${e.sallesSupplementaires ? '<br><span class="petit">+ ' + h(e.sallesSupplementaires) + '</span>' : ''}</dd>
+          <dt>Lieu</dt><dd>${h(e.salles.map(nomSalle).join(', '))}</dd>
           <dt>Participants</dt><dd>${h(f.capacitePrevue)}</dd>
           <dt>Demandeur</dt><dd>${h(e.demandeur)}</dd>
           <dt>Présent le jour même</dt><dd>${h(e.delegue ? e.delegue.nom + ' (mandaté·e)' : e.demandeur)}</dd>
