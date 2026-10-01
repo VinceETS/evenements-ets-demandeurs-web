@@ -458,6 +458,14 @@
         </div>
 
         <div class="section-form">
+          <h2 id="lbl-accompagnement">Type d\u2019accompagnement en audiovisuel <span class="requis">*</span></h2>
+          <p class="aide">Le soutien audiovisuel dont vous aurez besoin. Cochez tout ce qui s\u2019applique.</p>
+          <fieldset class="accompagnement" aria-labelledby="lbl-accompagnement">
+            ${S.ACCOMPAGNEMENTS.map((a) => `<label class="coche"><input type="checkbox" data-accompagnement="${h(a)}" ${(e.accompagnement || []).includes(a) ? 'checked' : ''}> ${h(a)}</label>`).join('')}
+          </fieldset>
+        </div>
+
+        <div class="section-form">
           <h2>Besoins particuliers <span class="requis">*</span></h2>
           <p class="aide">Cochez ce qui s’applique, puis précisez. Si vous n’avez aucun besoin particulier, indiquez-le dans les précisions.</p>
           ${BESOINS.map(([g, items]) => `<fieldset><legend class="etiquette">${g}</legend><div class="cases">
@@ -480,6 +488,13 @@
 
     const f = document.getElementById('f-demande');
     lierHeures(f);
+    // « Libre service » exclut les autres choix, et inversement.
+    f.querySelectorAll('[data-accompagnement]').forEach((c) => c.addEventListener('change', () => {
+      if (!c.checked) return;
+      const libre = c.dataset.accompagnement === S.LIBRE_SERVICE;
+      f.querySelectorAll('[data-accompagnement]').forEach((o) => { if (o !== c && (libre || o.dataset.accompagnement === S.LIBRE_SERVICE)) o.checked = false; });
+      f.querySelector('.accompagnement').classList.remove('invalide');
+    }));
     const alcool = () => {
       const a = f.querySelector('[data-besoin=alcool]').checked;
       const j = S.joursAvant(f.date.value);
@@ -494,13 +509,17 @@
       const champs = { besoins: {} };
       ['titre', 'type', 'demandeur', 'description', 'date', 'debut', 'fin', 'sallesSupplementaires', 'amenagement', 'public', 'participants', 'precisions', 'budget'].forEach((k) => champs[k] = f[k].value.trim());
       f.querySelectorAll('[data-besoin]').forEach((c) => { if (c.checked) champs.besoins[c.dataset.besoin] = true; });
+      champs.accompagnement = [...f.querySelectorAll('[data-accompagnement]:checked')].map((c) => c.dataset.accompagnement);
       const requis = ['titre', 'demandeur', 'description', 'date', 'debut', 'fin', 'public', 'participants'];
       if (f.motifModification) { requis.push('motifModification'); champs.motifModification = f.motifModification.value.trim(); }
       let premier = null;
       requis.forEach((k) => { const vide = !(champs[k] || '').length; f[k].classList.toggle('invalide', vide); f[k].setAttribute('aria-invalid', vide); if (vide && !premier) premier = f[k]; });
+      const zoneAcc = f.querySelector('.accompagnement');
+      zoneAcc.classList.toggle('invalide', !champs.accompagnement.length);
+      if (!champs.accompagnement.length && !premier) { premier = zoneAcc.querySelector('input'); toast('Choisissez au moins un type d\u2019accompagnement.'); }
       const aucunBesoin = !Object.keys(champs.besoins).length && !champs.precisions;
       if (aucunBesoin) { f.precisions.classList.add('invalide'); premier = premier || f.precisions; }
-      if (premier) { premier.focus(); toast(aucunBesoin && premier === f.precisions ? 'Indiquez vos besoins particuliers, ou « aucun » dans les précisions.' : 'Remplissez les champs obligatoires.'); return; }
+      if (premier) { premier.focus(); if (zoneAcc.contains(premier)) return; toast(aucunBesoin && premier === f.precisions ? 'Indiquez vos besoins particuliers, ou « aucun » dans les précisions.' : 'Remplissez les champs obligatoires.'); return; }
       if (champs.fin <= champs.debut) { f.fin.classList.add('invalide'); f.fin.focus(); toast('L’heure de fin doit suivre l’heure de début.'); return; }
       if (creation) { pageVerification(e, champs); return; }
       await S.MFiles.modifierDemande(e.id, champs);
@@ -521,6 +540,7 @@
       <dt>Aménagement</dt><dd>${h(e.amenagement || '—')}</dd>
       <dt>Public cible</dt><dd>${h(e.public || '—')} · ${h(e.participants || '?')} participants</dd>
       <dt>Description</dt><dd>${h(e.description || '—')}</dd>
+      <dt>Accompagnement audiovisuel</dt><dd>${(e.accompagnement || []).length ? h(e.accompagnement.join(' · ')) : '—'}</dd>
       <dt>Besoins particuliers</dt><dd>${bs.length ? `<div class="services">${bs.map((k) => `<span class="puce">${h(libelles[k] || k)}</span>`).join('')}</div>` : 'Aucun coché'}${e.precisions ? `<p class="petit" style="margin:6px 0 0">${h(e.precisions)}</p>` : ''}</dd>
       <dt>Budget</dt><dd>${h(e.budget || '—')}</dd>
     </dl></div>`;

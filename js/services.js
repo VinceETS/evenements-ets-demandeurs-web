@@ -42,6 +42,15 @@
   ];
 
   const AMENAGEMENTS = ['Théâtre', 'Salle de classe', 'Banquet (tables rondes)', 'Cocktail (debout)', 'En U', 'Réunion (table unique)', 'À déterminer avec la Régie'];
+  // « Type d'accompagnement en audiovisuel » (propriété 4520, liste 941) :
+  // les quatre libellés tels que M-Files les affiche. Choix multiple, au moins un.
+  const ACCOMPAGNEMENTS = [
+    'Aide au démarrage',
+    'Besoins ou montage particuliers',
+    'Présence complète durant l\u2019événement',
+    'Salle en libre service (aucun accompagnement requis)',
+  ];
+  const LIBRE_SERVICE = ACCOMPAGNEMENTS[3];
   const TYPES = ['Conférence', 'Colloque', 'Atelier / formation', 'Réception / cocktail', 'Cérémonie', 'Réunion', 'Lancement', 'Autre'];
 
   // --- Outils -------------------------------------------------------------
@@ -71,6 +80,10 @@
     const av = ['Projecteur et écran', 'Ordinateur de régie'];
     if (n > 40 || b.micro) av.push(n > 100 ? 'Sonorisation et 2 micros sans fil' : '1 micro sans fil');
     if (b.diffusion) av.push('Captation et diffusion en ligne');
+    const acc = d.accompagnement || [];
+    if (acc.includes(ACCOMPAGNEMENTS[2])) av.push('Technicien audiovisuel présent pendant tout l\u2019événement');
+    else if (acc.includes(ACCOMPAGNEMENTS[0])) av.push('Technicien audiovisuel au démarrage (15 min)');
+    if (acc.includes(LIBRE_SERVICE)) av.splice(0, av.length, 'Salle en libre service : équipement de la salle seulement');
     if (b.lutrin) av.push('Lutrin avec micro');
     const materiel = [];
     if (d.amenagement && /Banquet/.test(d.amenagement)) materiel.push(Math.ceil(n / 8) + ' tables rondes de 8');
@@ -116,21 +129,21 @@
         date: dansJours(34), debut: '08:30', fin: '16:30', salles: ['A-1600'], type: 'Colloque',
         description: 'Journée de conférences et de tables rondes sur l’IA en génie, ouverte aux partenaires industriels.',
         public: 'Chercheurs, étudiants aux cycles supérieurs, partenaires industriels', participants: 150,
-        amenagement: 'Théâtre', besoins: { micro: true, diffusion: true, traiteur: true, accueil: true, lutrin: true },
+        amenagement: 'Théâtre', accompagnement: ['Présence complète durant l\u2019événement'], besoins: { micro: true, diffusion: true, traiteur: true, accueil: true, lutrin: true },
         budget: 'Fonds de la chaire de recherche', conseiller: 'Marie-Ève Gagnon',
       }),
       base({
         id: 'EVT-2026-0398', titre: 'Midi-conférence : génie durable', statut: 'planifie',
         date: dansJours(8), debut: '12:00', fin: '13:15', salles: ['B-1204'], type: 'Conférence',
         description: 'Présentation d’un projet étudiant suivie d’une période de questions.',
-        public: 'Communauté ÉTS', participants: 35, amenagement: 'Salle de classe', besoins: { traiteur: true },
+        public: 'Communauté ÉTS', participants: 35, amenagement: 'Salle de classe', accompagnement: ['Aide au démarrage'], besoins: { traiteur: true },
         conseiller: 'Marie-Ève Gagnon',
       }),
       base({
         id: 'EVT-2026-0421', titre: 'Remise des bourses d’excellence', statut: 'revision',
         date: dansJours(52), debut: '17:00', fin: '19:30', salles: ['E-ATR'], type: 'Cérémonie',
         description: 'Cérémonie de remise des bourses suivie d’un cocktail.',
-        public: 'Boursiers, familles, donateurs', participants: 220, amenagement: 'Cocktail (debout)',
+        public: 'Boursiers, familles, donateurs', participants: 220, amenagement: 'Cocktail (debout)', accompagnement: ['Besoins ou montage particuliers', 'Présence complète durant l\u2019événement'],
         besoins: { micro: true, lutrin: true, traiteur: true, alcool: true, traiteurExterne: true, dignitaires: true, photo: true },
         conseiller: 'Karim Benali',
       }),
@@ -138,7 +151,7 @@
         id: 'EVT-2026-0433', titre: 'Atelier : rédiger un CV technique', statut: 'attente',
         date: dansJours(21), debut: '14:00', fin: '16:00', salles: ['D-5010'], type: 'Atelier / formation',
         description: 'Atelier pratique animé par le Service de l’emploi.', public: 'Étudiants de 1er cycle', participants: 45,
-        amenagement: 'Salle de classe',
+        amenagement: 'Salle de classe', accompagnement: ['Salle en libre service (aucun accompagnement requis)'],
       }),
       base({
         id: 'EVT-2026-0440', titre: 'Réunion du comité de programme', statut: 'salle',
@@ -179,7 +192,7 @@
   // --- API publique -------------------------------------------------------
 
   const Services = {
-    STATUTS, ROLES, AMENAGEMENTS, TYPES, SALLES, joursAvant, aujourdhui, iso,
+    STATUTS, ROLES, AMENAGEMENTS, ACCOMPAGNEMENTS, LIBRE_SERVICE, TYPES, SALLES, joursAvant, aujourdhui, iso,
 
     // Entra ID (simulé) : en phase 2, lecture du jeton MSAL et de ses groupes.
     Identite: {
