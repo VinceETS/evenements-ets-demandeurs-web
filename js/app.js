@@ -25,6 +25,20 @@
   const initiales = (n) => n.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
   const dans = (n) => n === 0 ? 'aujourd’hui' : n === 1 ? 'demain' : n > 0 ? `dans ${n} jours` : `il y a ${-n} jours`;
 
+  // Heures au quart d'heure, de 7 h à 23 h : on choisit, on n'écrit pas.
+  const HEURES = [];
+  for (let m = 7 * 60; m <= 23 * 60; m += 15) HEURES.push(String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'));
+  const choixHeure = (id, valeur) => `<select id="${id}"><option value="">Choisir…</option>${HEURES.map((t) => `<option value="${t}" ${t === valeur ? 'selected' : ''}>${heure(t)}</option>`).join('')}</select>`;
+  // Début choisi sans fin valable : on propose une heure plus tard.
+  function lierHeures(f) {
+    f.debut.addEventListener('change', () => {
+      if (f.debut.value && (!f.fin.value || f.fin.value <= f.debut.value)) {
+        const i = HEURES.indexOf(f.debut.value);
+        f.fin.value = HEURES[Math.min(i + 4, HEURES.length - 1)];
+      }
+    });
+  }
+
   function toast(texte) {
     const t = document.getElementById('toast');
     t.textContent = texte; t.classList.add('visible');
@@ -259,8 +273,8 @@
           <input type="text" id="titre" value="${h(b.titre || '')}" maxlength="120"></div>
         <div class="rangee">
           <div class="champ"><label for="date">Date <span class="requis">*</span></label><input type="date" id="date" min="${min}" value="${h(b.date || '')}"></div>
-          <div class="champ"><label for="debut">Début <span class="requis">*</span></label><input type="time" id="debut" value="${h(b.debut || '')}"></div>
-          <div class="champ"><label for="fin">Fin <span class="requis">*</span></label><input type="time" id="fin" value="${h(b.fin || '')}"></div>
+          <div class="champ"><label for="debut">Début <span class="requis">*</span></label>${choixHeure('debut', b.debut)}</div>
+          <div class="champ"><label for="fin">Fin <span class="requis">*</span></label>${choixHeure('fin', b.fin)}</div>
           <div class="champ"><label for="participants">Participants <span class="requis">*</span></label><input type="number" id="participants" min="1" value="${h(b.participants || '')}"></div>
         </div>
         <p class="aide petit doux" style="margin-top:-8px">Heures de l’événement lui-même, sans le montage ni le démontage : la Régie les ajoute.</p>
@@ -271,6 +285,7 @@
     `, 'Réserver la salle');
 
     const f = document.getElementById('f-salle');
+    lierHeures(f);
     if (soutien) {
       const liste = await S.Identite.annuaire('');
       document.getElementById('annuaire').innerHTML = liste.map((n) => `<option value="${h(n)}">`).join('');
@@ -379,8 +394,8 @@
           <div class="rangee">
             <div class="champ"><span class="etiquette">Salle réservée</span>${h(e.salles.map(nomSalle).join(', '))}</div>
             <div class="champ"><label for="date">Date <span class="requis">*</span></label><input type="date" id="date" value="${v('date')}" ${creation ? 'readonly' : ''}></div>
-            <div class="champ"><label for="debut">Début <span class="requis">*</span></label><input type="time" id="debut" value="${v('debut')}"></div>
-            <div class="champ"><label for="fin">Fin <span class="requis">*</span></label><input type="time" id="fin" value="${v('fin')}"></div>
+            <div class="champ"><label for="debut">Début <span class="requis">*</span></label>${choixHeure('debut', e.debut)}</div>
+            <div class="champ"><label for="fin">Fin <span class="requis">*</span></label>${choixHeure('fin', e.fin)}</div>
           </div>
           <p class="aide petit doux" style="margin-top:-8px">Sans le montage ni le démontage. Pour changer de salle ou de date, écrivez-le dans les précisions : la Régie ajuste Prélude.</p>
           <div class="champ"><label for="sallesSupplementaires">Salles supplémentaires</label>
@@ -419,6 +434,7 @@
       </form>`, creation ? 'Demande d’événement' : 'Modifier la demande');
 
     const f = document.getElementById('f-demande');
+    lierHeures(f);
     const alcool = () => {
       const a = f.querySelector('[data-besoin=alcool]').checked;
       const j = S.joursAvant(f.date.value);
