@@ -13,6 +13,15 @@
     .choix button[aria-pressed="true"] { border-color: var(--rouge); color: var(--rouge); }
     .intention { color: var(--texte-doux); margin-bottom: 20px; }
 
+    /* Barre de navigation entre propositions, toujours visible */
+    .barre-maquettes { position: sticky; top: 0; z-index: 5; }
+    .segments { display: inline-flex; background: rgba(255,255,255,.15); border-radius: 999px; padding: 3px; }
+    .segments button { font: inherit; font-size: .82rem; font-weight: 600; color: #fff; background: none; border: 0; border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+    .segments button[aria-pressed="true"] { background: #fff; color: var(--rouge); }
+    .barre-maquettes .barre-outils__interieur { justify-content: center; }
+    @media (min-width: 601px) { .barre-maquettes .barre-outils__interieur { justify-content: space-between; } }
+    @media (max-width: 600px) { .etiquette-maquettes { display: none; } .segments button { padding: 6px 10px; font-size: .78rem; } }
+
     /* Communs */
     .ligne { display: flex; align-items: center; gap: 12px; }
     .mini-date { flex: none; width: 52px; text-align: center; line-height: 1.1; }
@@ -80,7 +89,11 @@
   </style>
 </head>
 <body>
-  <div class="barre-outils"><div class="conteneur barre-outils__interieur"><span>Intranet ÉTS</span><span class="avatar">VS</span></div></div>
+  <div class="barre-outils barre-maquettes"><div class="conteneur barre-outils__interieur">
+    <span class="etiquette-maquettes">Maquettes</span>
+    <div class="segments" role="group" aria-label="Proposition">
+      <button data-p="a" aria-pressed="true">A · Priorités</button><button data-p="b" aria-pressed="false">B · Parcours</button><button data-p="c" aria-pressed="false">C · Agenda</button>
+    </div></div></div>
   <header class="entete">
     <div class="conteneur entete__interieur">
       <span class="marque"><img src="../assets/logo-ets.png" alt="" width="64" height="64"><span class="marque__texte">École de<br>technologie<br>supérieure</span></span>
@@ -92,11 +105,6 @@
   <main class="conteneur" id="contenu">
     <div class="avis no-print" style="margin-bottom:12px"><strong>Maquettes — tableau de bord</strong>
       Trois présentations des mêmes données. Rien n'est cliquable au-delà de cette page.</div>
-    <div class="choix" role="group" aria-label="Proposition">
-      <button data-p="a" aria-pressed="true">A · Priorités</button>
-      <button data-p="b" aria-pressed="false">B · Parcours</button>
-      <button data-p="c" aria-pressed="false">C · Agenda</button>
-    </div>
     <p class="intention" id="intention"></p>
     <div id="vue"></div>
   </main>
@@ -224,6 +232,7 @@
       document.getElementById('vue').innerHTML = VUES[p][0]();
       document.getElementById('intention').textContent = VUES[p][1];
       try { history.replaceState(null, '', '#' + p); } catch (_) {}
+      window.scrollTo(0, 0);
     }
     document.querySelectorAll('[data-p]').forEach((b) => b.onclick = () => montrer(b.dataset.p));
     const depuisAncre = () => montrer(VUES[location.hash.slice(1)] ? location.hash.slice(1) : 'a');
