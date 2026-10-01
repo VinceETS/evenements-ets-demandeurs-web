@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Tableau de bord — 3 propositions</title>
+  <title>Tableau de bord — propositions</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&display=swap">
   <link rel="stylesheet" href="../css/ets.css">
   <style>
@@ -32,6 +32,35 @@
     .meta { font-size: .82rem; color: var(--texte-doux); }
     .compte { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px; background: #E2E2E2; font-size: .78rem; font-weight: 700; margin-left: 6px; vertical-align: 2px; }
     .compte--rouge { background: var(--rouge); color: #fff; }
+
+
+    /* D — Version 1 revue */
+    .d-tuiles { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0,1fr)); margin-bottom: 24px; }
+    @media (max-width: 700px) { .d-tuiles { grid-template-columns: 1fr 1fr; } }
+    .d-tuile { font: inherit; text-align: left; background: #fff; border: 1px solid var(--bordure); border-left: 5px solid #BDBDBD; border-radius: var(--rayon); padding: 14px 16px; cursor: pointer; color: var(--texte); }
+    .d-tuile b { display: block; font-size: 1.8rem; line-height: 1.1; }
+    .d-tuile span { font-size: .85rem; color: var(--texte-doux); }
+    .d-tuile:hover { border-color: #999; }
+    .d-tuile[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--texte); }
+    .d-tuile--rouge { border-left-color: var(--rouge); } .d-tuile--rouge b { color: var(--rouge); }
+    .d-tuile--bleu { border-left-color: var(--bleu); }
+    .d-tuile--vert { border-left-color: var(--vert); }
+    .d-section { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 10px; }
+    .d-section h2 { margin: 0; font-size: 1.15rem; }
+    .d-afaire { background: #fff; border: 1px solid var(--bordure); border-top: 4px solid var(--rouge); border-radius: var(--rayon); margin-bottom: 28px; }
+    .d-tache { display: grid; grid-template-columns: 56px minmax(0,1fr) auto; gap: 14px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--bordure); }
+    .d-tache:last-child { border-bottom: 0; }
+    .d-tache .verbe { font-weight: 700; }
+    .d-tache .echeance { font-size: .78rem; font-weight: 700; color: var(--rouge); }
+    @media (max-width: 600px) { .d-tache { grid-template-columns: 48px minmax(0,1fr); } .d-tache .bouton { grid-column: 2; justify-self: start; } }
+    .d-liste { background: #fff; border: 1px solid var(--bordure); border-radius: var(--rayon); }
+    .d-ev { display: grid; grid-template-columns: 56px minmax(0,1fr) 170px; gap: 14px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--bordure); text-decoration: none; color: inherit; }
+    .d-ev:last-child { border-bottom: 0; }
+    .d-ev:hover { background: #FAFAFA; color: inherit; }
+    .d-ev .etat { text-align: right; }
+    .d-ev .prochain { font-size: .78rem; color: var(--texte-doux); margin-top: 4px; }
+    .d-ev .prochain--vous { color: var(--rouge); font-weight: 700; }
+    @media (max-width: 600px) { .d-ev { grid-template-columns: 48px minmax(0,1fr); } .d-ev .etat { grid-column: 2; text-align: left; } }
 
     /* A — Priorités */
     .a-actions { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin-bottom: 28px; }
@@ -92,7 +121,7 @@
   <div class="barre-outils barre-maquettes"><div class="conteneur barre-outils__interieur">
     <span class="etiquette-maquettes">Maquettes</span>
     <div class="segments" role="group" aria-label="Proposition">
-      <button data-p="a" aria-pressed="true">A · Priorités</button><button data-p="b" aria-pressed="false">B · Parcours</button><button data-p="c" aria-pressed="false">C · Agenda</button>
+      <button data-p="d" aria-pressed="true">D · Version 1 revue</button><button data-p="a" aria-pressed="false">A</button><button data-p="b" aria-pressed="false">B</button><button data-p="c" aria-pressed="false">C</button>
     </div></div></div>
   <header class="entete">
     <div class="conteneur entete__interieur">
@@ -104,7 +133,7 @@
 
   <main class="conteneur" id="contenu">
     <div class="avis no-print" style="margin-bottom:12px"><strong>Maquettes — tableau de bord</strong>
-      Trois présentations des mêmes données. Rien n'est cliquable au-delà de cette page.</div>
+      Quatre présentations des mêmes données. D reprend la première version ; A, B et C sont les premières maquettes. Rien n'est cliquable au-delà de cette page.</div>
     <p class="intention" id="intention"></p>
     <div id="vue"></div>
   </main>
@@ -141,6 +170,39 @@
     const actifs = tous.filter((e) => e.statut !== 'annule' && j(e) >= 0);
     const urgents = actifs.filter(action);
     const clos = tous.filter((e) => e.statut === 'annule' || j(e) < 0);
+
+    // --- D : Version 1 revue -------------------------------------------
+    let filtreD = 'actifs';
+    function vueD() {
+      const qui = (e) => ['attente', 'traitement'].includes(e.statut) ? 'La Régie prépare la fiche' : e.statut === 'planifie' ? 'Salle confirmée' : e.statut === 'annule' ? 'Annulé' : '';
+      const filtres = {
+        action: ['Action requise', 'rouge', urgents],
+        regie: ['Chez la Régie', 'bleu', actifs.filter((e) => ['attente', 'traitement'].includes(e.statut))],
+        planifies: ['Planifiés', 'vert', actifs.filter((e) => e.statut === 'planifie')],
+        actifs: ['Tous en cours', '', actifs],
+      };
+      const [titreListe, , liste] = filtres[filtreD];
+      const date = (e) => `<div class="mini-date"><b>${d(e.date).getDate()}</b><span>${MOIS[d(e.date).getMonth()]}</span></div>`;
+      return `
+        <div class="entete-page"><div><h1>Mes événements</h1>
+          <p class="doux" style="margin:0">Bonjour Vincent. Suivez vos demandes, de la réservation de salle jusqu’au jour J.</p></div>
+          <a class="bouton" href="#">+ Nouvel événement</a></div>
+
+        <div class="d-tuiles" role="group" aria-label="Filtrer la liste">
+          ${Object.entries(filtres).map(([k, [l, c, x]]) => `<button class="d-tuile ${c ? 'd-tuile--' + c : ''}" data-fd="${k}" aria-pressed="${k === filtreD}"><b>${x.length}</b><span>${l}</span></button>`).join('')}
+        </div>
+
+        ${urgents.length ? `<div class="d-section"><h2>À faire</h2><span class="meta">${urgents.length} action${urgents.length > 1 ? 's' : ''} de votre part</span></div>
+        <div class="d-afaire">${urgents.map((e) => { const a = action(e); return `<div class="d-tache">${date(e)}
+          <div><div class="verbe">${a.verbe}</div><div class="meta">${h(e.titre)}</div><div class="echeance">${a.quoi} · événement ${dans(j(e))}</div></div>
+          <a class="bouton bouton--secondaire" href="${lien(e)}">Ouvrir</a></div>`; }).join('')}</div>` : ''}
+
+        <div class="d-section"><h2>${titreListe}</h2><a class="meta" href="#">Annulés et passés (${clos.length})</a></div>
+        <div class="d-liste">${liste.length ? liste.map((e) => { const a = action(e); return `<a class="d-ev" href="${lien(e)}">${date(e)}
+          <div><div class="titre-ev">${h(e.titre)}</div><div class="meta">${heure(e.debut)} – ${heure(e.fin)} · ${h(salle(e.salles[0]))} · ${h(e.participants || '?')} pers.</div></div>
+          <div class="etat">${statut(e)}<div class="prochain ${a ? 'prochain--vous' : ''}">${a ? '→ ' + a.verbe : qui(e)} · ${dans(j(e))}</div></div></a>`; }).join('') : '<p class="meta" style="padding:16px;margin:0">Aucun événement.</p>'}</div>`;
+    }
+    document.addEventListener('click', (ev) => { const t = ev.target.closest('[data-fd]'); if (t) { filtreD = t.dataset.fd; montrer('d', true); } });
 
     // --- A : Priorités ----------------------------------------------------
     function vueA() {
@@ -223,19 +285,20 @@
     }
 
     const VUES = {
+      d: [vueD, 'D · Version 1 revue — la même information que la première version, mieux hiérarchisée : les compteurs servent aussi de filtres, « À faire » dit quoi faire et pour quand, et chaque événement indique qui a la balle.'],
       a: [vueA, 'A · Priorités — ce qui vous attend en grandes cartes en tête, puis le reste regroupé par situation. Pour qui veut savoir en une seconde « qu’est-ce que je dois faire ? ».'],
       b: [vueB, 'B · Parcours — une colonne par étape du processus, comme un tableau Kanban. Montre d’un coup d’œil où en est chaque événement et qui a la balle (vous ou la Régie).'],
       c: [vueC, 'C · Agenda — les événements dans l’ordre du calendrier, groupés par mois, avec une barre de progression; les actions restent dans une colonne fixe à gauche. Pour qui pense « par date ».'],
     };
-    function montrer(p) {
+    function montrer(p, garderDefilement) {
       document.querySelectorAll('[data-p]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.p === p));
       document.getElementById('vue').innerHTML = VUES[p][0]();
       document.getElementById('intention').textContent = VUES[p][1];
       try { history.replaceState(null, '', '#' + p); } catch (_) {}
-      window.scrollTo(0, 0);
+      if (!garderDefilement) window.scrollTo(0, 0);
     }
     document.querySelectorAll('[data-p]').forEach((b) => b.onclick = () => montrer(b.dataset.p));
-    const depuisAncre = () => montrer(VUES[location.hash.slice(1)] ? location.hash.slice(1) : 'a');
+    const depuisAncre = () => montrer(VUES[location.hash.slice(1)] ? location.hash.slice(1) : 'd');
     window.addEventListener('hashchange', depuisAncre);
     depuisAncre();
   })();
