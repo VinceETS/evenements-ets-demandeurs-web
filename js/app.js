@@ -959,9 +959,10 @@
         <ol class="liste-simple">
           <li>Ouvrez <a href="https://ets-mdocs.cloudvault.m-files.com" target="_blank" rel="noopener">M-Files Web</a> et connectez-vous.</li>
           <li>Ouvrez la console du navigateur (Safari : Cmd + Option + C ; Chrome : Cmd + Option + J).</li>
-          <li><button class="lien" id="copier-script" type="button">Copiez le script</button>, collez-le dans la console, Entrée : le jeton est copié.</li>
+          <li><button class="lien" id="copier-script" type="button">Copiez le script</button>, collez-le dans la console, Entrée : le jeton est envoyé directement à ce serveur.</li>
         </ol>
-        <div class="champ" style="margin-top:12px"><label for="jeton">2. Collez le jeton ici</label>
+        <p class="petit doux">Faites-le dans Chrome ou Safari : le panneau navigateur de Claude n\u2019a pas de console et bloque l\u2019envoi vers ce Mac.</p>
+        <div class="champ" style="margin-top:12px"><label for="jeton">2. Ou collez le jeton ici (facultatif)</label>
           <textarea id="jeton" rows="3" placeholder="eyJ…" autocomplete="off" spellcheck="false"></textarea>
           <p class="aide">Gardé dans cet onglet seulement. Il expire après une dizaine de minutes. ${fin ? 'Jeton actuel : ' + (fin < new Date() ? 'expiré' : 'valide jusqu\u2019à ' + fin.toLocaleTimeString('fr-CA')) + '.' : ''}</p></div>
         <div class="actions"><button class="bouton" id="tester" type="button">Enregistrer et tester</button></div>
@@ -985,9 +986,10 @@
       try { await navigator.clipboard.writeText(code); toast('Script copié.'); } catch (_) { toast('Copie refusée par le navigateur.'); }
     };
     $('tester').onclick = async () => {
-      if ($('jeton').value.trim()) R.poserJeton($('jeton').value);
-      $('jeton').value = '';
       try {
+        if ($('jeton').value.trim()) R.poserJeton($('jeton').value);
+        $('jeton').value = '';
+        await R.rafraichirEtat();
         const s = await R.session();
         $('resultat-test').innerHTML = `<div class="avis avis--succes"><strong>Connecté au vault</strong>Compte : ${h(s.AccountName || '?')} · utilisateur M-Files n\u00b0 ${h(s.UserID)}</div>`;
       } catch (e) { $('resultat-test').innerHTML = `<div class="avis avis--alerte"><strong>Échec</strong>${h(e.message)}</div>`; }
@@ -1044,5 +1046,6 @@
     document.querySelector('.pied__demo').appendChild(lien);
   }
   window.addEventListener('hashchange', router);
-  afficherProfil().then(router);
+  const etatJeton = S.MFilesReel && S.MFilesReel.disponible ? S.MFilesReel.rafraichirEtat() : null;
+  Promise.all([afficherProfil(), etatJeton]).then(router);
 })();

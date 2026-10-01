@@ -35,14 +35,23 @@
     } catch (_) { return null; }
   }
 
+  // L'expiration du jeton gardé par le relais (le jeton lui-même ne sort jamais).
+  async function etatRelais() {
+    try { const e = await (await fetch('/jeton/etat')).json(); return e.expiration ? new Date(e.expiration * 1000) : null; } catch (_) { return null; }
+  }
+  let expRelais = null;
+
   async function lire(chemin) {
-    const jeton = lireSession(CLE_JETON);
-    if (!jeton) throw new Error('Aucun jeton M-Files : ouvrez « Connexion M-Files » et collez-en un.');
-    const r = await fetch('/mfiles/' + chemin, { headers: { Authorization: 'Bearer ' + jeton } });
+    // Le jeton collé dans la page passe d'abord ; sinon le relais utilise
+    // celui qu'il a reçu de outils/jeton-mfiles.js.
+    let jeton = lireSession(CLE_JETON);
+    if (jeton && !/^[\w.-]+$/.test(jeton)) { ecrireSession(CLE_JETON, null); jeton = null; }
+    const r = await fetch('/mfiles/' + chemin, { headers: jeton ? { Authorization: 'Bearer ' + jeton } : {} });
     const corps = await r.json().catch(() => ({}));
     if (!r.ok) {
-      const exp = expiration(jeton);
-      if ((r.status === 401 || r.status === 403) && exp && exp < new Date()) throw new Error('Le jeton M-Files a expiré : reprenez-en un.');
+      if (r.status === 401) throw new Error('Aucun jeton M-Files : ouvrez « Connexion M-Files » pour en fournir un.');
+      const exp = jeton ? expiration(jeton) : await etatRelais();
+      if (r.status === 403 && exp && exp < new Date()) throw new Error('Le jeton M-Files a expiré : reprenez-en un.');
       throw new Error(`M-Files a répondu ${r.status} : ${corps.Message || 'sans détail'}`);
     }
     return corps;
@@ -146,9 +155,17 @@
   S.MFilesReel = {
     disponible: local,
     actif: () => local && lireSession(CLE_MODE) === 'reel',
-    jetonExpire: () => { const j = lireSession(CLE_JETON); const e = j && expiration(j); return e ? e : null; },
+    jetonExpire: () => { const j = lireSession(CLE_JETON); return (j && expiration(j)) || expRelais; },
+    async rafraichirEtat() { expRelais = await etatRelais(); return expRelais; },
     activer(on) { ecrireSession(CLE_MODE, on ? 'reel' : null); },
-    poserJeton(j) { ecrireSession(CLE_JETON, (j || '').trim().replace(/^Bearer\s+/i, '') || null); },
+    // On ne garde que le jeton lui-même (trois blocs base64url séparés par des
+    // points) : un texte collé de travers ferait échouer chaque requête.
+    poserJeton(j) {
+      const m = /eyJ[\w-]+\.eyJ[\w-]+\.[\w-]*/.exec(j || '');
+      if (!m) throw new Error('Ce texte ne contient pas de jeton (il commence par « eyJ »).');
+      ecrireSession(CLE_JETON, m[0]);
+    },
+    oublierJeton() { ecrireSession(CLE_JETON, null); },
     ...Reel,
   };
 
