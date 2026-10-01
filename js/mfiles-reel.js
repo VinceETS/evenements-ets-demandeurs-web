@@ -169,6 +169,18 @@
     ...Reel,
   };
 
+  // Le jeton peut arriver d'une fenêtre M-Files Web (outils/jeton-mfiles.js).
+  // On n'accepte que cette origine-là, et on le remet aussi au relais.
+  if (local) window.addEventListener('message', (ev) => {
+    if (ev.origin !== 'https://ets-mdocs.cloudvault.m-files.com' || !ev.data || ev.data.type !== 'jeton-mfiles') return;
+    try {
+      S.MFilesReel.poserJeton(ev.data.jeton);
+      fetch('/jeton', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jeton: lireSession(CLE_JETON) }) }).catch(() => {});
+      ev.source.postMessage('jeton-recu', ev.origin);
+      window.dispatchEvent(new CustomEvent('jeton-mfiles-recu'));
+    } catch (_) { /* message mal formé : ignoré */ }
+  });
+
   if (S.MFilesReel.actif()) {
     const demo = S.MFiles;
     S.MFiles = Object.assign({}, demo, {

@@ -959,7 +959,7 @@
         <ol class="liste-simple">
           <li>Ouvrez <a href="https://ets-mdocs.cloudvault.m-files.com" target="_blank" rel="noopener">M-Files Web</a> et connectez-vous.</li>
           <li>Ouvrez la console du navigateur (Safari : Cmd + Option + C ; Chrome : Cmd + Option + J).</li>
-          <li><button class="lien" id="copier-script" type="button">Copiez le script</button>, collez-le dans la console, Entrée : le jeton est envoyé directement à ce serveur.</li>
+          <li><button class="lien" id="copier-script" type="button">Copiez le script</button>, collez-le dans la console de M-Files Web, Entrée : cette page s\u2019ouvre et reçoit le jeton.</li>
         </ol>
         <p class="petit doux">Faites-le dans Chrome ou Safari : le panneau navigateur de Claude n\u2019a pas de console et bloque l\u2019envoi vers ce Mac.</p>
         <div class="champ" style="margin-top:12px"><label for="jeton">2. Ou collez le jeton ici (facultatif)</label>
@@ -994,6 +994,8 @@
         $('resultat-test').innerHTML = `<div class="avis avis--succes"><strong>Connecté au vault</strong>Compte : ${h(s.AccountName || '?')} · utilisateur M-Files n\u00b0 ${h(s.UserID)}</div>`;
       } catch (e) { $('resultat-test').innerHTML = `<div class="avis avis--alerte"><strong>Échec</strong>${h(e.message)}</div>`; }
     };
+    // Jeton reçu d'une fenêtre M-Files Web : on teste aussitôt.
+    window.addEventListener('jeton-mfiles-recu', () => { if (location.hash === '#/mfiles') $('tester').click(); }, { once: true });
     $('basculer').onclick = () => { R.activer(!R.actif()); location.hash = '#/'; location.reload(); };
     $('relever').onclick = async (ev) => {
       ev.target.disabled = true;
