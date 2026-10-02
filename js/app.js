@@ -325,7 +325,7 @@
 
   function encadreProcessus() {
     return `<aside class="carte">
-      <h2 style="font-size:1.05rem">Comment ça se passe</h2>
+      <h2 style="font-size:1.05rem">Étapes de l’organisation</h2>
       <ol class="chrono">
         <li><b>Vous réservez la salle</b><span>Elle est bloquée pour vous dès l’envoi.</span></li>
         <li><b>Vous décrivez l’événement</b><span>La demande part à la Régie des événements.</span></li>
