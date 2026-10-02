@@ -1002,7 +1002,6 @@
             <ul class="liste-simple petit">
               <li><a href="https://intranet.etsmtl.ca/content/6270/mode-demploi-pour-les-membres-du-personnel" target="_blank" rel="noopener">Mode d’emploi (intranet)</a></li>
               <li><a href="https://intranet.etsmtl.ca/content/602/capacite-et-amenagement-des-espaces" target="_blank" rel="noopener">Capacité et aménagement des espaces</a></li>
-              <li><a href="https://teams.microsoft.com/l/team/19%3ANqaSXHBq1O8PYEjaOJdi_tkY3XxRdKqTkB8MgEoGYxk1%40thread.tacv2/conversations?groupId=778c4da3-9c81-4c06-8bae-5e57843e610f&tenantId=70aae3b7-9f3b-484d-8f95-49e8fbb783c0" target="_blank" rel="noopener">Canal Teams de la Régie</a></li>
               <li><a href="mailto:regie-evenements@etsmtl.ca">regie-evenements@etsmtl.ca</a></li>
             </ul></section>
         </aside>
