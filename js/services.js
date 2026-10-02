@@ -9,7 +9,7 @@
  * un stockage. « Réinitialiser la démo » les remet à l'état de départ.
  */
 (function () {
-  const CLE = 'ets-demandeurs-v2';
+  const CLE = 'ets-demandeurs-v4';
   const JOUR = 86400000;
 
   // --- Référentiels -------------------------------------------------------
@@ -86,7 +86,7 @@
     const libre = acc.includes(LIBRE_SERVICE);
     const zones = [{ titre: 'Accueil', items: ['1 table 30 x 60', '2 chaises noires basses'] }];
     if (d.nourriture === 'Oui' || d.alcool === 'Oui') zones.push({ titre: d.alcool === 'Oui' ? 'Zone cocktail' : 'Zone traiteur', items: [
-      ...(d.alcool === 'Oui' ? ['Bar + backbar'] : []), `${Math.max(2, Math.ceil(n / 10))} tables cocktail`, '2 tables 30 x 60 nappées pour le traiteur'] });
+      ...(d.alcool === 'Oui' ? ['Bar + backbar'] : []), `${Math.min(20, Math.max(2, Math.ceil(n / 10)))} tables cocktail`, '2 tables 30 x 60 nappées pour le traiteur'] });
     if (d.bbq === 'Oui') zones.push({ titre: 'Zone extérieure', items: ['Emplacement pour le BBQ', '4 tables 30 x 60'] });
     const scene = d.direction === 'Oui' || d.invites === 'Oui' || n > 60;
     const av = { Audio: [], Vidéo: [], Éclairage: [] };
@@ -135,59 +135,16 @@
       delegue: null, verifications: {}, messages: [], historique: [],
     }, o);
 
-    const e = [
-      base({
-        id: 'EVT-2026-0412', format: 'Colloque', publicCible: ['Corps enseignant', 'Étudiant(e)s', 'Externe à l\u2019ÉTS'], titre: 'Colloque en IA appliquée au génie', statut: 'fiche',
-        date: dansJours(34), debut: '08:30', fin: '16:30', salles: ['A-1600'], dateFin: dansJours(35),
-        description: 'Journée de conférences et de tables rondes sur l’IA en génie, ouverte aux partenaires industriels.',
-        participants: 150,
-        besoinAV: 'Oui', precisionsAV: 'Panel de 5 personnes, diffusion en ligne.', accompagnement: ['Présence complète durant l\u2019événement'],
-        besoinAffichage: 'Oui', typesAffichage: ['Dans le cadre de l\u2019événement', 'Promotionnel'],
-        nourriture: 'Oui', traiteur: 'Interne', bbq: 'Non', frais: 'Oui',
-        direction: 'Oui', membreDirection: 'Philippe Côté', roleDirection: 'Prise de parole / Porte-parole institutionnel', conseiller: 'Étienne Cormier',
-      }),
-      base({
-        id: 'EVT-2026-0398', format: 'Conférence', publicCible: ['Étudiant(e)s', 'Employé(e)s'], titre: 'Midi-conférence : génie durable', statut: 'planifie',
-        date: dansJours(8), debut: '12:00', fin: '13:15', salles: ['B-1204'],
-        description: 'Présentation d’un projet étudiant suivie d’une période de questions.',
-        participants: 35, besoinAV: 'Oui', accompagnement: ['Aide au démarrage'],
-        nourriture: 'Oui', traiteur: 'Interne', bbq: 'Non',
-        conseiller: 'Étienne Cormier',
-      }),
-      base({
-        id: 'EVT-2026-0421', format: 'Gala / remise de prix', publicCible: ['Étudiant(e)s', 'Externe à l\u2019ÉTS'], titre: 'Remise des bourses d’excellence', statut: 'revision',
-        date: dansJours(52), debut: '17:00', fin: '19:30', salles: ['E-ATR'],
-        description: 'Cérémonie de remise des bourses suivie d’un cocktail.',
-        participants: 220, besoinAV: 'Oui', accompagnement: ['Besoins ou montage particuliers', 'Présence complète durant l\u2019événement'],
-        nourriture: 'Oui', traiteur: 'Externe', bbq: 'Non', alcool: 'Oui', permisAlcool: 'Oui',
-        direction: 'Oui', membreDirection: 'Sophie Lavoie', roleDirection: 'Représentation',
-        invites: 'Oui', listeInvites: 'Représentante de la Fondation de l\u2019ÉTS\nConsul général de France (dignitaire étranger)',
-        conseiller: 'Étienne Cormier',
-      }),
-      base({
-        id: 'EVT-2026-0433', format: 'Atelier', publicCible: ['Étudiant(e)s'], titre: 'Atelier : rédiger un CV technique', statut: 'attente',
-        date: dansJours(21), debut: '14:00', fin: '16:00', salles: ['D-5010'],
-        description: 'Atelier pratique animé par le Service de l’emploi.', participants: 45,
-        besoinAV: 'Oui', accompagnement: ['Salle en libre service (aucun accompagnement requis)'],
-      }),
-      base({
-        id: 'EVT-2026-0440', titre: 'Réunion du comité de programme', statut: 'salle',
-        date: dansJours(15), debut: '09:00', fin: '11:00', salles: ['B-0520'], description: '', participants: '',
-        besoinAV: '', besoinAffichage: '', nourriture: '', alcool: '', frais: '', direction: '', invites: '', pourAutrui: undefined,
-      }),
-      base({
-        id: 'EVT-2026-0377', format: 'Lancement', publicCible: ['Grand public'], titre: 'Lancement de l’ouvrage collectif', statut: 'annule',
-        date: dansJours(4), debut: '16:00', fin: '18:00', salles: ['A-1150'],
-        description: 'Lancement annulé : l’éditeur a reporté la parution.', participants: 80,
-      }),
-    ];
+    // De vraies demandes à venir (js/exemples.js), sauf le conseiller.
+    const e = (window.EXEMPLES || []).map((x) => base(Object.assign({ creePar: x.demandeur, demandeurCourriel: '' }, JSON.parse(JSON.stringify(x)))));
 
     // Fiches et échanges déjà produits par la Régie
-    e[0].fiche = genererFiche(e[0]);
-    e[1].fiche = genererFiche(e[1]); e[1].ficheApprouvee = true; e[1].delegue = null;
-    e[2].fiche = genererFiche(e[2]);
-    e[2].messages = [{ auteur: 'regie', nom: 'Étienne Cormier', date: maintenant(),
-      texte: 'Pour le service d’alcool par un traiteur externe, pouvez-vous nous confirmer le nom du traiteur et nous transmettre le permis dès qu’il est obtenu ? Aussi : combien de dignitaires prendront la parole ?' }];
+    e.forEach((x) => {
+      if (['fiche', 'planifie', 'revision'].includes(x.statut)) x.fiche = genererFiche(x);
+      if (x.statut === 'planifie') x.ficheApprouvee = true;
+      if (x.statut === 'revision') x.messages = [{ auteur: 'regie', nom: 'Étienne Cormier', date: maintenant(),
+        texte: 'Avant de finaliser la fiche, pouvez-vous nous confirmer le nombre final de participants et nous dire si des personnes prendront la parole (micro, lutrin) ?' }];
+    });
     e.forEach((x) => x.historique.push({ date: maintenant(), texte: 'Réservation déposée dans Prélude' }));
     return { profil: moi.id, evenements: e, sequence: 441 };
   }
