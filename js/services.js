@@ -159,7 +159,7 @@
         nourriture: 'Oui', traiteur: 'Externe', bbq: 'Non', alcool: 'Oui', permisAlcool: 'Oui',
         direction: 'Oui', membreDirection: 'Sophie Lavoie', roleDirection: 'Représentation',
         invites: 'Oui', listeInvites: 'Représentante de la Fondation de l\u2019ÉTS\nConsul général de France (dignitaire étranger)',
-        conseiller: 'Karim Benali',
+        conseiller: 'Étienne Cormier',
       }),
       base({
         id: 'EVT-2026-0433', format: 'Atelier', publicCible: ['Étudiant(e)s'], titre: 'Atelier : rédiger un CV technique', statut: 'attente',
@@ -183,7 +183,7 @@
     e[0].fiche = genererFiche(e[0]);
     e[1].fiche = genererFiche(e[1]); e[1].ficheApprouvee = true; e[1].delegue = null;
     e[2].fiche = genererFiche(e[2]);
-    e[2].messages = [{ auteur: 'regie', nom: 'Karim Benali', date: maintenant(),
+    e[2].messages = [{ auteur: 'regie', nom: 'Étienne Cormier', date: maintenant(),
       texte: 'Pour le service d’alcool par un traiteur externe, pouvez-vous nous confirmer le nom du traiteur et nous transmettre le permis dès qu’il est obtenu ? Aussi : combien de dignitaires prendront la parole ?' }];
     e.forEach((x) => x.historique.push({ date: maintenant(), texte: 'Réservation déposée dans Prélude' }));
     return { profil: moi.id, evenements: e, sequence: 441 };
