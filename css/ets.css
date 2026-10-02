@@ -282,3 +282,24 @@ dialog h2 { margin-bottom: .4em; }
 .pastille--radio:has(input:focus-visible) { outline: 3px solid var(--bleu); outline-offset: 2px; }
 .question.invalide, fieldset.invalide, .plage.invalide { border-color: var(--rouge); box-shadow: inset 0 0 0 1px var(--rouge); }
 fieldset.invalide:not(.question) { border: 1px solid var(--rouge); border-radius: var(--rayon); padding: 8px; }
+
+.fiche-pdf { width: 100%; height: 80vh; border: 1px solid var(--bordure); border-radius: var(--rayon); }
+
+/* Fiche événement simulée, sur le modèle du PowerPoint de la Régie */
+.fiche-ets { background: #fff; border: 1px solid var(--bordure); border-radius: var(--rayon); overflow: hidden; margin-bottom: 20px; }
+.fiche-ets p { margin: 0 0 4px; }
+.fiche-ets .fort { font-weight: 700; text-decoration: underline; }
+.fiche-ets__bandeau { background: #D0283A; color: #fff; display: grid; grid-template-columns: 1.3fr 1fr 1.3fr; gap: 16px; padding: 16px 20px; }
+.fiche-ets__bandeau > div + div { border-left: 2px solid rgba(255,255,255,.8); padding-left: 16px; }
+.fiche-ets__corps { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 16px; padding: 16px; }
+.fiche-ets__plan svg { width: 100%; height: auto; }
+.fiche-ets__encadre { background: #F1F1F1; margin-bottom: 12px; }
+.fiche-ets__encadre h3 { background: #7A7A7A; color: #fff; font-size: .95rem; font-weight: 600; margin: 0; padding: 6px 10px; }
+.fiche-ets__encadre h4 { margin: 10px 10px 2px; font-size: .9rem; }
+.fiche-ets__encadre ul { margin: 6px 0 10px; padding: 0 10px 0 28px; font-size: .9rem; }
+.fiche-ets__encadre > p { padding: 0 10px; font-size: .9rem; }
+.fiche-ets__notes { margin-bottom: 0; }
+.fiche-ets__notes p { color: var(--rouge); font-weight: 700; text-decoration: underline; }
+.fiche-ets__photos { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 0 16px 16px; }
+.fiche-ets__photos div { aspect-ratio: 3 / 2; background: #E6E6E6; color: #888; display: grid; place-items: center; font-size: .85rem; }
+@media (max-width: 800px) { .fiche-ets__bandeau, .fiche-ets__corps { grid-template-columns: 1fr; } .fiche-ets__bandeau > div + div { border-left: 0; padding-left: 0; } }

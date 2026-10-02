@@ -57,6 +57,14 @@
     }
     return corps;
   }
+  // Un fichier (la fiche convertie en PDF), rendu en Blob pour l'afficher.
+  async function lireFichier(chemin) {
+    const jeton = lireSession(CLE_JETON);
+    const r = await fetch('/mfiles/' + chemin, { headers: jeton ? { Authorization: 'Bearer ' + jeton } : {} });
+    if (!r.ok) throw new Error(`M-Files n’a pas rendu la fiche (${r.status}).`);
+    return r.blob();
+  }
+
   const items = (o) => Array.isArray(o) ? o : (o.Items || []);
 
   // --- Lecture d'une propriété ---------------------------------------------
@@ -82,6 +90,15 @@
     return /annul|non recevable/i.test(nomEtape || '') ? 'annule' : 'traitement';
   }
 
+  // La fiche liée (4465) : des documents PowerPoint de la classe 1019. La
+  // dernière liée est la version courante.
+  function ficheReelle(props) {
+    const p = val(props, P.fiche);
+    const liens = p ? (p.TypedValue.Lookups || (p.TypedValue.Lookup ? [p.TypedValue.Lookup] : [])) : [];
+    if (!liens.length) return null;
+    return { reelle: true, version: liens.length, documents: liens.map((l) => ({ id: l.Item, nom: l.DisplayValue })) };
+  }
+
   function enEvenement(objet, props) {
     const etape = val(props, P.etape);
     const nomEtape = etape ? etape.TypedValue.DisplayValue : '';
@@ -103,7 +120,7 @@
       listeInvites: texte(props, P.listeInvites), format: lookups(props, P.format).join(', '), publicCible: lookups(props, P.publicCible),
       surCampus: ouiNon(props, P.surCampus), unites: lookups(props, P.unites), conseiller: texte(props, P.conseiller),
       statut: statutDe(idEtape, nomEtape), ficheApprouvee: ETATS.planifie.includes(idEtape),
-      fiche: null, ficheMFiles: texte(props, P.fiche),
+      fiche: ficheReelle(props), ficheMFiles: texte(props, P.fiche),
       delegue: null, verifications: {}, messages: [],
       historique: [{ date: new Date().toISOString(), texte: 'Étape M-Files : ' + (nomEtape || 'inconnue') }],
     };
@@ -129,6 +146,14 @@
       if (cache && cache[id]) return cache[id];
       const props = await lire(`objects/${DEMANDE.type}/${id}/latest/properties`);
       return enEvenement({ ObjVer: { ID: Number(id) }, Title: '' }, props);
+    },
+
+    // La fiche en PDF : M-Files convertit le PowerPoint (échoue vers 20 Mo).
+    async pdfFiche(idDocument) {
+      const fichiers = await lire(`objects/0/${idDocument}/latest/files`);
+      const f = items(fichiers)[0];
+      if (!f) throw new Error('Ce document de fiche ne contient aucun fichier.');
+      return lireFichier(`objects/0/${idDocument}/latest/files/${f.ID}/content?format=pdf`);
     },
 
     // Relevé du vault : ce qui manque dans BRANCHEMENT-MFILES.md, enregistré
@@ -243,7 +268,7 @@
   if (S.MFilesReel.actif()) {
     const demo = S.MFiles;
     S.MFiles = Object.assign({}, demo, {
-      mesDemandes: Reel.mesDemandes, demande: Reel.demande,
+      mesDemandes: Reel.mesDemandes, demande: Reel.demande, pdfFiche: Reel.pdfFiche,
       soumettreDemande: refus, modifierDemande: refus, approuverFiche: refus, refuserFiche: refus,
       repondreRevision: refus, designerDelegue: refus, cocherVerification: refus, annuler: refus, simulerRegie: refus,
     });

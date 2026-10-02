@@ -9,7 +9,7 @@
  * un stockage. « Réinitialiser la démo » les remet à l'état de départ.
  */
 (function () {
-  const CLE = 'ets-demandeurs-v1';
+  const CLE = 'ets-demandeurs-v2';
   const JOUR = 86400000;
 
   // --- Référentiels -------------------------------------------------------
@@ -77,26 +77,36 @@
     return h % 4 !== 0;
   }
 
-  // La proposition que la Régie ferait à partir de la demande.
+  // La proposition que la Régie ferait à partir de la demande, sur le modèle
+  // des vraies fiches (un PowerPoint d'une page) : bandeau, plan, encadrés
+  // par zone, audiovisuel, notes.
   function genererFiche(d) {
     const n = Number(d.participants) || 0;
     const acc = d.accompagnement || [];
-    let av = [];
-    if (d.besoinAV === 'Oui') {
-      av = ['Projecteur et écran', 'Ordinateur de régie'];
-      if (n > 40) av.push(n > 100 ? 'Sonorisation et 2 micros sans fil' : '1 micro sans fil');
-      if (acc.includes(ACCOMPAGNEMENTS[2])) av.push('Technicien audiovisuel présent pendant tout l’événement');
-      else if (acc.includes(ACCOMPAGNEMENTS[0])) av.push('Technicien audiovisuel au démarrage (15 min)');
-      if (acc.includes(ACCOMPAGNEMENTS[1])) av.push('Montage particulier : voir les précisions de la demande');
-      if (acc.includes(LIBRE_SERVICE)) av = ['Salle en libre service : équipement de la salle seulement'];
-    } else av = ['Aucun besoin audiovisuel'];
-    const materiel = ['Table d’accueil avec 2 chaises'];
-    if (d.nourriture === 'Oui') materiel.push('2 tables nappées pour le traiteur');
-    if (d.bbq === 'Oui') materiel.push('Emplacement extérieur pour le BBQ');
-    if (d.besoinAffichage === 'Oui') (d.typesAffichage || []).forEach((t) => materiel.push('Affichage ' + t.toLowerCase()));
-    if (d.direction === 'Oui' || d.invites === 'Oui') materiel.push('Lutrin et sièges réservés à l’avant');
+    const libre = acc.includes(LIBRE_SERVICE);
+    const zones = [{ titre: 'Accueil', items: ['1 table 30 x 60', '2 chaises noires basses'] }];
+    if (d.nourriture === 'Oui' || d.alcool === 'Oui') zones.push({ titre: d.alcool === 'Oui' ? 'Zone cocktail' : 'Zone traiteur', items: [
+      ...(d.alcool === 'Oui' ? ['Bar + backbar'] : []), `${Math.max(2, Math.ceil(n / 10))} tables cocktail`, '2 tables 30 x 60 nappées pour le traiteur'] });
+    if (d.bbq === 'Oui') zones.push({ titre: 'Zone extérieure', items: ['Emplacement pour le BBQ', '4 tables 30 x 60'] });
+    const scene = d.direction === 'Oui' || d.invites === 'Oui' || n > 60;
+    const av = { Audio: [], Vidéo: [], Éclairage: [] };
+    if (d.besoinAV === 'Oui' && !libre) {
+      av.Audio.push(n > 100 ? '2 microphones à main' : '1 microphone à main');
+      if (scene) av.Audio.push('1 microphone gooseneck au lutrin');
+      av.Vidéo.push('1 projecteur et écran', '1 ordinateur au podium', 'Connexion HDMI pour ordinateur portable au podium');
+      av.Éclairage.push('Éclairage fonctionnel de salle manuel');
+    } else if (libre) {
+      av.Vidéo.push('Équipement de la salle seulement (libre service)');
+    }
+    const notes = [];
+    if (scene) notes.push({ titre: 'Sur scène', lignes: [d.direction === 'Oui' ? 'Lutrin + 2 fauteuils' : 'Lutrin'] });
+    if (d.precisionsAV) notes.push({ titre: 'Précisions besoins audiovisuels', lignes: [d.precisionsAV] });
+    if (acc.includes(ACCOMPAGNEMENTS[0])) notes.push({ titre: 'Accompagnement', lignes: ['Aide au démarrage le jour même'] });
+    if (acc.includes(ACCOMPAGNEMENTS[2])) notes.push({ titre: 'Accompagnement', lignes: ['Technicien présent pendant tout l’événement'] });
+    if (d.besoinAffichage === 'Oui') notes.push({ titre: 'Affichage', lignes: (d.typesAffichage || []).length ? d.typesAffichage : ['Voir la demande'] });
+    if (d.permisAlcool === 'Oui') notes.push({ titre: 'Alcool', lignes: ['Copie du permis à fournir 10 jours avant'] });
     const services = ['Régie des événements', 'SGAI (aménagement)'];
-    if (d.besoinAV === 'Oui' && !acc.includes(LIBRE_SERVICE)) services.push('Soutien audiovisuel');
+    if (d.besoinAV === 'Oui' && !libre) services.push('Soutien audiovisuel');
     if (n > 100 || d.invites === 'Oui' || d.alcool === 'Oui') services.push('Sécurité');
     if (d.direction === 'Oui') services.push('Direction générale');
     if (d.invites === 'Oui' && /étranger/i.test(d.listeInvites || '')) services.push('SRI');
@@ -109,15 +119,8 @@
       date: maintenant(),
       amenagement: n > 60 ? 'Théâtre' : 'Salle de classe',
       capacitePrevue: n,
-      montage: 'Montage 1 h avant, démontage 1 h après',
-      audiovisuel: av,
-      materiel,
-      services,
-      indications: [
-        'Présence du demandeur ou de la personne déléguée requise pendant l’événement.',
-        d.permisAlcool === 'Oui' ? 'Permis d’alcool requis : fournir la copie à la Régie au plus tard 10 jours avant.' : d.alcool === 'Oui' ? 'Alcool sans permis : à confirmer avec la Régie.' : 'Aucun service d’alcool prévu.',
-        'Accès au quai de livraison sur demande préalable.',
-      ],
+      accompagnementAV: libre ? 'Libre service' : acc[0] || (d.besoinAV === 'Oui' ? 'Besoins ou montage particuliers' : 'Aucun'),
+      zones, av, notes, services,
     };
   }
 
@@ -141,7 +144,7 @@
         besoinAV: 'Oui', precisionsAV: 'Panel de 5 personnes, diffusion en ligne.', accompagnement: ['Présence complète durant l\u2019événement'],
         besoinAffichage: 'Oui', typesAffichage: ['Dans le cadre de l\u2019événement', 'Promotionnel'],
         nourriture: 'Oui', traiteur: 'Interne', bbq: 'Non', frais: 'Oui',
-        direction: 'Oui', membreDirection: 'Philippe Côté', roleDirection: 'Prise de parole / Porte-parole institutionnel', conseiller: 'Marie-Ève Gagnon',
+        direction: 'Oui', membreDirection: 'Philippe Côté', roleDirection: 'Prise de parole / Porte-parole institutionnel', conseiller: 'Étienne Cormier',
       }),
       base({
         id: 'EVT-2026-0398', format: 'Conférence', publicCible: ['Étudiant(e)s', 'Employé(e)s'], titre: 'Midi-conférence : génie durable', statut: 'planifie',
@@ -149,7 +152,7 @@
         description: 'Présentation d’un projet étudiant suivie d’une période de questions.',
         participants: 35, besoinAV: 'Oui', accompagnement: ['Aide au démarrage'],
         nourriture: 'Oui', traiteur: 'Interne', bbq: 'Non',
-        conseiller: 'Marie-Ève Gagnon',
+        conseiller: 'Étienne Cormier',
       }),
       base({
         id: 'EVT-2026-0421', format: 'Gala / remise de prix', publicCible: ['Étudiant(e)s', 'Externe à l\u2019ÉTS'], titre: 'Remise des bourses d’excellence', statut: 'revision',
@@ -313,7 +316,7 @@
       async simulerRegie(id) {
         await delai(300);
         const e = trouver(id);
-        if (e.statut === 'attente') { e.statut = 'traitement'; e.conseiller = 'Marie-Ève Gagnon'; journal(e, 'Demande assignée à Marie-Ève Gagnon'); }
+        if (e.statut === 'attente') { e.statut = 'traitement'; e.conseiller = 'Étienne Cormier'; journal(e, 'Demande assignée à Étienne Cormier'); }
         else if (e.statut === 'traitement' || e.statut === 'revision') {
           e.fiche = genererFiche(e); e.statut = 'fiche';
           journal(e, 'Fiche événement v' + e.fiche.version + ' proposée — tâche « Validation de la fiche événement » créée');

@@ -877,6 +877,7 @@
     const f = e.fiche;
     if (!f) { rendre(`<div class="avis">La fiche événement n’est pas encore prête.</div><a href="#/evenement/${e.id}">Retour</a>`); return; }
     const aValider = e.statut === 'fiche';
+    if (f.reelle) return pageFicheReelle(e, f, aValider);
     rendre(`
       <div class="fil"><a href="#/">Mes événements</a> › <a href="#/evenement/${e.id}">${h(e.titre)}</a> › Fiche événement</div>
       <div class="entete-page">
@@ -885,28 +886,30 @@
       </div>
       ${aValider ? `<div class="avis avis--action no-print"><strong>À valider</strong>Vérifiez que la proposition répond à vos besoins, puis approuvez-la ou demandez des modifications au bas de la page.</div>` : ''}
       ${e.ficheApprouvee ? `<div class="avis avis--succes"><strong>Fiche approuvée</strong>C’est la source d’information officielle de l’événement pour tous les services.</div>` : ''}
-      <div class="grille grille-2">
-        <section class="carte fiche"><h2>Événement</h2><dl>
-          <dt>Date</dt><dd>${plageDates(e)}</dd>
-          <dt>Heures</dt><dd>${heure(e.debut)} à ${heure(e.fin)}<br><span class="petit doux">${h(f.montage)}</span></dd>
-          <dt>Lieu</dt><dd>${h(e.salles.map(nomSalle).join(', '))}</dd>
-          <dt>Participants</dt><dd>${h(f.capacitePrevue)}</dd>
-          <dt>Demandeur</dt><dd>${h(e.demandeur)}</dd>
-          <dt>Présent le jour même</dt><dd>${h(e.delegue ? e.delegue.nom + ' (mandaté·e)' : e.demandeur)}</dd>
-        </dl></section>
-        <section class="carte"><h2>Services impliqués</h2>
-          <p class="petit doux">Chaque service reçoit ses tâches à partir de cette fiche : vous n’avez pas à les contacter.</p>
-          <div class="services">${f.services.map((s) => `<span class="puce">${h(s)}</span>`).join('')}</div>
-          <p class="petit doux" style="margin-top:12px">Besoin des TI ? Ce soutien se demande à part, sur l’intranet.</p>
-        </section>
-      </div>
-      <section class="carte"><h2>Plan et aménagement : ${h(f.amenagement)}</h2>
-        <div class="plan">${planSalle(f)}</div><p class="petit doux" style="margin-top:8px">Schéma indicatif. Le plan définitif est joint à la fiche dans M-Files.</p></section>
-      <div class="grille grille-2">
-        <section class="carte"><h2>Audiovisuel</h2><ul class="liste-simple">${f.audiovisuel.map((x) => `<li>${h(x)}</li>`).join('')}</ul></section>
-        <section class="carte"><h2>Matériel à installer</h2><ul class="liste-simple">${f.materiel.map((x) => `<li>${h(x)}</li>`).join('')}</ul></section>
-      </div>
-      <section class="carte"><h2>Indications</h2><ul class="liste-simple">${f.indications.map((x) => `<li>${h(x)}</li>`).join('')}</ul></section>
+      <article class="fiche-ets" aria-label="Fiche événement">
+        <header class="fiche-ets__bandeau">
+          <div><p>Lieu/salle : ${h(e.salles.map(nomSalle).join(' & '))}</p><p>Titre de l’événement :</p><p class="fort">${h(e.date + ' - ' + e.titre)}</p></div>
+          <div class="petit"><p>Nb de participant·es :</p><p class="fort">${h(f.capacitePrevue)}</p><p>Conseiller·ère événement :</p><p class="fort">${h(e.conseiller || 'Étienne Cormier')}</p></div>
+          <div><p>Heure de début : <span class="fort">${h(e.debut)}</span></p><p>Heure de fin : <span class="fort">${h(e.fin)}</span></p><p>Accompagnement AV : <span class="fort">${h(f.accompagnementAV)}</span></p></div>
+        </header>
+        <div class="fiche-ets__corps">
+          <div class="fiche-ets__plan">${planSalle(f)}<p class="petit doux">Plan indicatif : ${h(f.amenagement)}</p></div>
+          <div>
+            ${f.zones.map((z) => `<section class="fiche-ets__encadre"><h3>${h(z.titre)}</h3><ul>${z.items.map((x) => `<li>${h(x)}</li>`).join('')}</ul></section>`).join('')}
+            <section class="fiche-ets__encadre"><h3>AUDIOVISUEL</h3>
+              ${Object.entries(f.av).filter(([, l]) => l.length).map(([t, l]) => `<h4>${t}</h4><ul>${l.map((x) => `<li>${h(x)}</li>`).join('')}</ul>`).join('') || '<p>Aucun besoin audiovisuel</p>'}
+            </section>
+          </div>
+          <section class="fiche-ets__encadre fiche-ets__notes"><h3>NOTES :</h3>
+            ${f.notes.length ? f.notes.map((n) => `<h4>${h(n.titre)} :</h4>${n.lignes.map((x) => `<p>${h(x)}</p>`).join('')}`).join('') : '<p class="doux">Aucune note.</p>'}
+          </section>
+        </div>
+        <div class="fiche-ets__photos" aria-hidden="true"><div>Photo de la salle</div><div>Photo de la salle</div><div>Photo de la salle</div></div>
+      </article>
+      <section class="carte"><h2>Services impliqués</h2>
+        <p class="petit doux">Chaque service reçoit ses tâches à partir de cette fiche : vous n’avez pas à les contacter.</p>
+        <div class="services">${f.services.map((s) => `<span class="puce">${h(s)}</span>`).join('')}</div>
+      </section>
 
       ${aValider ? `<section class="carte no-print" id="decision">
         <h2>Votre décision</h2>
@@ -936,6 +939,29 @@
       sessionFlash = `<div class="avis"><strong>Commentaires envoyés</strong>La Régie révisera la fiche et vous en proposera une nouvelle version.</div>`;
       location.hash = `#/evenement/${e.id}`;
     };
+  }
+
+  // La vraie fiche (mode M-Files réel) : le PowerPoint de la Régie, converti
+  // en PDF par M-Files et montré tel quel.
+  async function pageFicheReelle(e, f, aValider) {
+    const doc = f.documents[f.documents.length - 1];
+    rendre(`
+      <div class="fil"><a href="#/">Mes événements</a> › <a href="#/evenement/${e.id}">${h(e.titre)}</a> › Fiche événement</div>
+      <div class="entete-page">
+        <div><h1>Fiche événement</h1><p class="doux" style="margin:4px 0 0">${h(doc.nom)}${e.conseiller ? ' · ' + h(e.conseiller) : ''}</p></div>
+        <div>${statut(e)}</div>
+      </div>
+      ${f.documents.length > 1 ? `<p class="petit doux">Fiches liées : ${f.documents.map((d) => h(d.nom)).join(' · ')}. La dernière est affichée.</p>` : ''}
+      <section class="carte"><div id="pdf-fiche" class="doux">Conversion de la fiche en PDF par M-Files…</div></section>
+      ${aValider ? `<div class="avis no-print"><strong>Valider la fiche</strong>En mode réel, l’approbation se fait encore dans M-Files : la tâche « Validation de la fiche événement ».</div>` : ''}
+      <p class="no-print"><a href="#/evenement/${e.id}">← Retour à l’événement</a></p>
+    `, 'Fiche événement');
+    const zone = document.getElementById('pdf-fiche');
+    try {
+      const url = URL.createObjectURL(await S.MFiles.pdfFiche(doc.id));
+      zone.outerHTML = `<iframe class="fiche-pdf" src="${url}" title="Fiche événement en PDF"></iframe>
+        <p class="petit"><a href="${url}" download="${h(doc.nom)}.pdf">Télécharger le PDF</a></p>`;
+    } catch (err) { zone.innerHTML = `<div class="avis avis--alerte">${h(err.message)}</div>`; }
   }
 
   // --- Aide ---------------------------------------------------------------
