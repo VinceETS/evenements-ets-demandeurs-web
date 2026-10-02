@@ -141,7 +141,10 @@
     async mesDemandes() {
       const session = await lire('session');
       const employes = items(await lire(`objects?o=${EMPLOYE.type}&p${EMPLOYE.utilisateur}=${session.UserID}&limit=5`));
-      const filtre = employes.length ? `&p${P.demandeur}=${employes[0].ObjVer.ID}` : '';
+      // Sans fiche Employé liée au compte, on n'a aucune demande : surtout pas
+      // toutes celles du vault.
+      if (!employes.length) { cache = {}; return []; }
+      const filtre = `&p${P.demandeur}=${employes[0].ObjVer.ID}`;
       const trouves = items(await lire(`objects?o=${DEMANDE.type}&p${P.classe}=${DEMANDE.classe}${filtre}&limit=100`));
       const evts = await Promise.all(trouves.map(async (o) => enEvenement(o, await lire(`objects/${DEMANDE.type}/${o.ObjVer.ID}/latest/properties`))));
       cache = Object.fromEntries(evts.map((e) => [e.id, e]));
