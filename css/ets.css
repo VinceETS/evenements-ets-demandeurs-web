@@ -116,6 +116,8 @@ main { padding-top: 24px; padding-bottom: 48px; min-height: 60vh; outline: none;
 /* Tableau de bord */
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
 .stat { background: #fff; border: 1px solid var(--bordure); border-radius: var(--rayon); padding: 14px 16px; }
+.stat { display: block; text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+a.stat:hover, a.stat:focus-visible { border-color: var(--bleu); box-shadow: 0 2px 8px rgba(0,0,0,.08); }
 .stat b { display: block; font-size: 1.6rem; color: var(--texte); }
 .stat span { font-size: .85rem; color: var(--texte-doux); }
 .stat--action b { color: var(--rouge); }

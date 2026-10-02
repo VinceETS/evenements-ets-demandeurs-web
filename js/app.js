@@ -182,6 +182,36 @@
   // --- Page : Mes événements ---------------------------------------------
 
   let filtreCourant = 'actifs';
+  // Les quatre cases du tableau de bord ; chacune ouvre sa propre page.
+  const SECTIONS = {
+    action: { titre: 'Action requise', filtre: (e) => (prochaineAction(e) || {}).urgent,
+      compte: (n) => `action${n > 1 ? 's' : ''} requise${n > 1 ? 's' : ''}`, vide: 'Rien à faire pour l’instant.' },
+    traitement: { titre: 'En traitement par la Régie', filtre: (e) => ['attente', 'traitement'].includes(e.statut),
+      compte: () => 'en traitement par la Régie', vide: 'Aucune demande en traitement.' },
+    planifies: { titre: 'Planifiés', filtre: (e) => e.statut === 'planifie' && !passe(e),
+      compte: () => 'planifiés', vide: 'Aucun événement planifié.' },
+    encours: { titre: 'En cours', filtre: (e) => e.statut !== 'annule' && !passe(e),
+      compte: () => 'en cours au total', vide: 'Aucun événement en cours.' },
+  };
+
+  async function pageSection(cle) {
+    const sec = SECTIONS[cle];
+    if (!sec) return rendre('<h1>Page introuvable</h1><p><a href="#/">Retour à mes événements</a></p>');
+    const liste = (await S.MFiles.mesDemandes()).filter(sec.filtre).sort((a, b) => a.date.localeCompare(b.date));
+    const corps = cle === 'action'
+      ? `<section class="carte"><ul class="liste-simple" style="list-style:none;padding:0">
+          ${liste.map((e) => { const a = prochaineAction(e); return `<li style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--bordure)">
+            <span><b>${h(a.texte)}</b><br><span class="doux petit">${h(e.titre)} · ${dateLongue(e.date)}</span></span>
+            <a class="bouton bouton--secondaire" href="${a.lien}">Ouvrir</a></li>`; }).join('')}
+        </ul></section>`
+      : `<ul class="liste-evenements">${liste.map(carteEvenement).join('')}</ul>`;
+    rendre(`
+      <div class="fil"><a href="#/">Mes événements</a> › ${h(sec.titre)}</div>
+      <h1>${h(sec.titre)} <span class="doux">(${liste.length})</span></h1>
+      ${liste.length ? corps : `<div class="carte doux">${h(sec.vide)}</div>`}
+    `, sec.titre);
+  }
+
   async function pageAccueil() {
     const tous = (await S.MFiles.mesDemandes()).sort((a, b) => a.date.localeCompare(b.date));
     const actions = tous.map((e) => ({ e, a: prochaineAction(e) })).filter((x) => x.a && x.a.urgent);
@@ -204,10 +234,8 @@
       </div>
 
       <div class="stats">
-        <div class="stat stat--action"><b>${actions.length}</b><span>action${actions.length > 1 ? 's' : ''} requise${actions.length > 1 ? 's' : ''}</span></div>
-        <div class="stat"><b>${compte((e) => ['attente', 'traitement'].includes(e.statut))}</b><span>en traitement par la Régie</span></div>
-        <div class="stat"><b>${compte((e) => e.statut === 'planifie' && !passe(e))}</b><span>planifiés</span></div>
-        <div class="stat"><b>${compte((e) => e.statut !== 'annule' && !passe(e))}</b><span>en cours au total</span></div>
+        ${Object.entries(SECTIONS).map(([k, sec]) => { const n = tous.filter(sec.filtre).length;
+          return `<a class="stat${k === 'action' ? ' stat--action' : ''}" href="#/section/${k}"><b>${n}</b><span>${sec.compte(n)}</span></a>`; }).join('')}
       </div>
 
       ${actions.length ? `<section class="carte" aria-labelledby="t-afaire">
@@ -1052,6 +1080,7 @@
       else if (p[0] === 'demande') await pageDemande(p[1]);
       else if (p[0] === 'evenement' && p[2] === 'fiche') await pageFiche(p[1]);
       else if (p[0] === 'evenement') await pageEvenement(p[1], ancre);
+      else if (p[0] === 'section') await pageSection(p[1]);
       else if (p[0] === 'aide') pageAide();
       else if (p[0] === 'mfiles') await pageMFiles();
       else rendre('<h1>Page introuvable</h1><p><a href="#/">Retour à mes événements</a></p>');
