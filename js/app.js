@@ -21,6 +21,8 @@
   const horodatage = (iso) => { const d = new Date(iso); return `${d.getDate()} ${MOIS[d.getMonth()]} à ${d.getHours()} h ${String(d.getMinutes()).padStart(2, '0')}`; };
   const nomSalle = (id) => (S.SALLES.find((s) => s.id === id) || { nom: id }).nom;
   const statut = (e) => `<span class="statut statut--${S.STATUTS[e.statut].classe}">${S.STATUTS[e.statut].libelle}</span>`;
+  // La référence de l'événement : le numéro de réservation Prélude.
+  const reference = (e) => e.noReservation ? 'Réservation ' + e.noReservation : 'Sans réservation Prélude';
   const passe = (e) => S.joursAvant(e.date) < 0;
   const initiales = (n) => n.split(/\s+/).map((p) => p[0]).slice(0, 2).join('').toUpperCase();
   const dans = (n) => n === 0 ? 'aujourd’hui' : n === 1 ? 'demain' : n > 0 ? `dans ${n} jours` : `il y a ${-n} jours`;
@@ -265,7 +267,7 @@
       <div class="date-bloc"><b>${d.getDate()}</b><span>${MOIS[d.getMonth()]} ${d.getFullYear()}</span></div>
       <div>
         <h3>${h(e.titre)}</h3>
-        <div class="evenement__meta">${heure(e.debut)} à ${heure(e.fin)} · ${h(e.salles.map(nomSalle).join(', '))} · ${h(e.id)}</div>
+        <div class="evenement__meta">${heure(e.debut)} à ${heure(e.fin)} · ${h(e.salles.map(nomSalle).join(', '))} · ${h(reference(e))}</div>
         ${a && a.urgent ? `<div class="evenement__suite">→ ${h(a.texte)}</div>` : ''}
       </div>
       <div class="evenement__droite">${statut(e)}<div class="petit doux" style="margin-top:4px">${dans(S.joursAvant(e.date))}</div></div>
@@ -423,7 +425,7 @@
         const btn = e2.target.querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'Réservation…';
         const evt = await S.Prelude.reserver(b);
         brouillon = null;
-        sessionFlash = `<div class="avis avis--succes"><strong>Salle réservée : ${h(nomSalle(choix))}</strong>Numéro ${h(evt.id)}. Un accusé de réception a été envoyé par courriel. La salle est bloquée pour vous ; elle sera confirmée à l’approbation de la fiche événement.</div>`;
+        sessionFlash = `<div class="avis avis--succes"><strong>Salle réservée : ${h(nomSalle(choix))}</strong>Numéro de réservation ${h(evt.noReservation)} : il est inscrit dans votre demande M-Files et sert de référence à l’événement. Un accusé de réception a été envoyé par courriel. La salle est bloquée pour vous ; elle sera confirmée à l’approbation de la fiche événement.</div>`;
         location.hash = `#/demande/${evt.id}`;
       };
     };
@@ -482,7 +484,7 @@
       ${flash()}
       ${!creation && !regles.libre ? `<div class="avis avis--alerte"><strong>La fiche événement est déjà approuvée</strong>Votre modification sera envoyée à la Régie, qui révisera la fiche. Vous devrez approuver la nouvelle version. Modifications possibles jusqu’à 5 jours avant l’événement.</div>` : ''}
       <form class="carte" id="f-demande" novalidate>
-        <p class="doux petit" style="margin-top:0">Numéro ${h(e.id)} · Tous les champs marqués <span class="requis">*</span> sont obligatoires.</p>
+        <p class="doux petit" style="margin-top:0">${h(reference(e))} (inscrite d’office dans la demande) · Tous les champs marqués <span class="requis">*</span> sont obligatoires.</p>
 
         <h2>L’événement</h2>
         <div class="champ"><label for="titre">Titre de l’événement <span class="requis">*</span></label><input type="text" id="titre" value="${v('titre')}"></div>
@@ -665,6 +667,7 @@
       <dt>Unité</dt><dd>${(e.unites || []).length ? h(e.unites.join(' · ')) : '—'} <span class="doux petit">(automatique)</span></dd>
       <dt>Dates et heures</dt><dd>${plageDates(e)}, de ${heure(e.debut)} à ${heure(e.fin)}</dd>
       <dt>Lieu</dt><dd>${h(e.salles.map(nomSalle).join(', '))}</dd>
+      <dt>Réservation Prélude</dt><dd>${e.noReservation ? 'Oui, no ' + h(e.noReservation) : 'Non'} <span class="doux petit">(automatique)</span></dd>
       <dt>Sur le campus</dt><dd>${h(e.surCampus || 'Oui')} <span class="doux petit">(automatique)</span></dd>
       <dt>Public cible</dt><dd>${(e.publicCible || []).length ? h(e.publicCible.join(' · ')) : '—'}</dd>
       <dt>Participants</dt><dd>${h(e.participants || '?')}</dd>
@@ -728,7 +731,7 @@
       <div class="fil"><a href="#/">Mes événements</a> › ${h(e.titre)}</div>
       <div class="entete-page">
         <div><h1>${h(e.titre)}</h1>
-          <p class="doux" style="margin:4px 0 0">${h(e.id)} · ${plageDates(e)} · ${heure(e.debut)} à ${heure(e.fin)} · ${dans(j)}</p></div>
+          <p class="doux" style="margin:4px 0 0">${h(reference(e))} · ${plageDates(e)} · ${heure(e.debut)} à ${heure(e.fin)} · ${dans(j)}</p></div>
         ${statut(e)}
       </div>
       ${flash()}

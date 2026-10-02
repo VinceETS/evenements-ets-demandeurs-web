@@ -3,6 +3,8 @@
 window.EXEMPLES = [
  {
   "id": "1500",
+  "reservationPrelude": true,
+  "noReservation": "057794",
   "titre": "PEF - 5 à 8",
   "description": "5 à 8 de l'AEETS",
   "statut": "attente",
@@ -45,6 +47,8 @@ window.EXEMPLES = [
  },
  {
   "id": "1353",
+  "reservationPrelude": true,
+  "noReservation": "035653",
   "titre": "Gala des Ambassadeurs et Ambassadrices",
   "description": "16h00 - E-2010 & E-2011 (10 personnes)\r\nArrivée des lauréats\r\nPhoto de groupe et photos individuelles dans l’atrium.\r\n\r\n17h00 - E-2011 (100-120)\r\nArrivée des invités - Cocktail (sans bouchées)\r\n\r\n\r\n18h00 - E-2033 (100-120)\r\nDébut de l'événement\r\n•Photo individuelle des lauréats avec prix dans l'atrium",
   "statut": "traitement",
@@ -95,6 +99,8 @@ window.EXEMPLES = [
  },
  {
   "id": "1115",
+  "reservationPrelude": true,
+  "noReservation": "026250",
   "titre": "Portes ouvertes_A26",
   "description": "Journée Portes ouvertes",
   "statut": "fiche",
@@ -144,6 +150,8 @@ window.EXEMPLES = [
  },
  {
   "id": "1468",
+  "reservationPrelude": true,
+  "noReservation": "000019",
   "titre": "Inauguration du bureau de l'entrepreneuriat",
   "description": "Inauguration du bureau",
   "statut": "planifie",
@@ -189,6 +197,8 @@ window.EXEMPLES = [
  },
  {
   "id": "1447",
+  "reservationPrelude": true,
+  "noReservation": "072173",
   "titre": "2026-10-19 - JSEE A2026",
   "description": "JSEE du 19 au 22 octobre 2026.\r\n42 kiosques d'employeurs par jour.\r\n\r\n- 42 tables rectangulaires\r\n- 2 chaises par table\r\n- 1 table d'accueil avec nappe noire\r\n- Rideaux noirs\r\n- Cordons\r\n- 2 X poubelles/ recyclage (îlots)\r\n- Mise en place des rallonges électrique et les taper au plancher\r\n- 3 supports d’affiches à velcro de 36’’\r\n- 1 chariot transport des kiosques",
   "statut": "planifie",
@@ -231,6 +241,8 @@ window.EXEMPLES = [
  },
  {
   "id": "1401",
+  "reservationPrelude": true,
+  "noReservation": "077576",
   "titre": "Journée FCNQ",
   "description": "Date : 06 octobre 2026\r\nHeure : 10h à 15h\r\nMontage à partir de 09h30\r\nEmplacement: ascenseurs vitrés\r\nÉquipement : 1 table, 2 chaises + électricité",
   "statut": "annule",
@@ -273,6 +285,8 @@ window.EXEMPLES = [
  },
  {
   "id": "1133",
+  "reservationPrelude": true,
+  "noReservation": "026250",
   "titre": "Journées des cycles supérieurs_2026",
   "description": "Journée rassemblant les activités à portée cycles sup (recherche, études, etc)",
   "statut": "traitement",
@@ -325,6 +339,8 @@ window.EXEMPLES = [
  },
  {
   "id": "1494",
+  "reservationPrelude": true,
+  "noReservation": "059330",
   "titre": "ETSPLORE- Soirée réseautage",
   "description": "Soirée de retour de Mission ETSplore",
   "statut": "revision",
@@ -371,6 +387,8 @@ window.EXEMPLES = [
  },
  {
   "id": "1255",
+  "reservationPrelude": true,
+  "noReservation": "075162",
   "titre": "Kiosque BRP #2",
   "description": "Kiosque du BRP; thématique annuelle: masculinité positive. Kiosque ludique (roue de fortune) de 12 h à 13 h 30. Nous aurons besoin de 2 tables et 3 chaises.",
   "statut": "salle",

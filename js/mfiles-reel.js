@@ -21,7 +21,7 @@
     typesAffichage: 4552, precisionsAffichage: 4536, traiteur: 4501, bbq: 4447,
     alcool: 4537, permisAlcool: 4081, frais: 4439, direction: 4440, membreDirection: 4504, roleDirection: 4503,
     invites: 4492, listeInvites: 4451,
-    format: 3742, publicCible: 2857, surCampus: 3083, unites: 1023, conseiller: 4463, fiche: 4465, autorise: 4448,
+    format: 3742, publicCible: 2857, surCampus: 3083, unites: 1023, conseiller: 4463, fiche: 4465, reservationPrelude: 4483, noReservation: 4486, autorise: 4448,
   };
   const DEMANDE = { type: 359, classe: 1017 };
   const EMPLOYE = { type: 103, utilisateur: 1221 };
@@ -99,6 +99,10 @@
     return { reelle: true, version: liens.length, documents: liens.map((l) => ({ id: l.Item, nom: l.DisplayValue })) };
   }
 
+  // Le numéro de réservation est saisi à la main dans le vault : espaces,
+  // zéros de tête perdus. On le ramène à 6 chiffres.
+  const noReservation = (t) => { const m = /\d+/.exec(t || ''); return m ? m[0].padStart(6, '0') : ''; };
+
   function enEvenement(objet, props) {
     const etape = val(props, P.etape);
     const nomEtape = etape ? etape.TypedValue.DisplayValue : '';
@@ -120,6 +124,7 @@
       listeInvites: texte(props, P.listeInvites), format: lookups(props, P.format).join(', '), publicCible: lookups(props, P.publicCible),
       surCampus: ouiNon(props, P.surCampus), unites: lookups(props, P.unites), conseiller: texte(props, P.conseiller),
       statut: statutDe(idEtape, nomEtape), ficheApprouvee: ETATS.planifie.includes(idEtape),
+      reservationPrelude: ouiNon(props, P.reservationPrelude) === 'Oui', noReservation: noReservation(texte(props, P.noReservation)),
       fiche: ficheReelle(props), ficheMFiles: texte(props, P.fiche),
       delegue: null, verifications: {}, messages: [],
       historique: [{ date: new Date().toISOString(), texte: 'Étape M-Files : ' + (nomEtape || 'inconnue') }],

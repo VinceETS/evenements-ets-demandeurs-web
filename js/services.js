@@ -9,7 +9,7 @@
  * un stockage. « Réinitialiser la démo » les remet à l'état de départ.
  */
 (function () {
-  const CLE = 'ets-demandeurs-v4';
+  const CLE = 'ets-demandeurs-v5';
   const JOUR = 86400000;
 
   // --- Référentiels -------------------------------------------------------
@@ -193,13 +193,15 @@
       async reserver({ titre, date, debut, fin, salle, participants, auNomDe }) {
         await delai(500);
         const u = PROFILS.find((p) => p.id === etat.profil);
-        const id = 'EVT-2026-0' + (++etat.sequence);
+        // Prélude rend un numéro de réservation à 6 chiffres. Il est inscrit dans
+        // la demande M-Files (4483 et 4486) et sert de référence à l'événement.
+        const noReservation = String(78000 + (++etat.sequence)).padStart(6, '0');
         const e = {
-          id, titre, statut: 'salle', date, debut, fin, salles: [salle], participants,
+          id: noReservation, noReservation, reservationPrelude: true, titre, statut: 'salle', date, debut, fin, salles: [salle], participants,
           demandeur: auNomDe || u.nom, demandeurCourriel: '', creePar: u.nom,
           description: '', pourAutrui: Boolean(auNomDe), accompagnement: [], typesAffichage: [], delegue: null, verifications: {}, messages: [], historique: [],
         };
-        journal(e, 'Réservation déposée dans Prélude — accusé de réception envoyé par courriel');
+        journal(e, 'Réservation ' + noReservation + ' déposée dans Prélude — accusé de réception envoyé par courriel');
         etat.evenements.push(e); sauver();
         return copie(e);
       },
