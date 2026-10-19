@@ -1031,7 +1031,7 @@
           <li>Ouvrez la console du navigateur (Safari : Cmd + Option + C ; Chrome : Cmd + Option + J).</li>
           <li><button class="lien" id="copier-script" type="button">Copiez le script</button>, collez-le dans la console de M-Files Web, Entrée : cette page s\u2019ouvre et reçoit le jeton.</li>
         </ol>
-        <p class="petit doux">Faites-le dans Chrome ou Safari : le panneau navigateur de Claude n\u2019a pas de console et bloque l\u2019envoi vers ce Mac.</p>
+        <p class="petit doux">Faites-le dans Chrome ou Safari : le navigateur intégré à l\u2019outil de développement n\u2019a pas de console et bloque l\u2019envoi vers ce Mac.</p>
         <div class="champ" style="margin-top:12px"><label for="jeton">2. Ou collez le jeton ici (facultatif)</label>
           <textarea id="jeton" rows="3" placeholder="eyJ…" autocomplete="off" spellcheck="false"></textarea>
           <p class="aide">Gardé dans cet onglet seulement. Il expire après une dizaine de minutes. ${fin ? 'Jeton actuel : ' + (fin < new Date() ? 'expiré' : 'valide jusqu\u2019à ' + fin.toLocaleTimeString('fr-CA')) + '.' : ''}</p></div>
